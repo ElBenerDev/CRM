@@ -2,139 +2,239 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from app.api import patients, appointments, leads
-from app.utils.db import init_db, get_db
-from app.services.crm import CRMService
-from config.settings import settings
-import uvicorn
 from datetime import datetime, timedelta
+from config.settings import settings
+import os
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Sistema CRM para gestión dental",
     version=settings.APP_VERSION,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
 )
 
-# Configurar CORS
+# Montar archivos estáticos
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Configurar templates
+templates = Jinja2Templates(directory="app/templates")
+
+# Configurar CORS con origen permitido desde variables de entorno
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configurar archivos estáticos y templates
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
-
-# Incluir routers API
-app.include_router(
-    patients.router,
-    prefix=f"{settings.API_PREFIX}/patients",
-    tags=["patients"]
-)
-app.include_router(
-    appointments.router,
-    prefix=f"{settings.API_PREFIX}/appointments",
-    tags=["appointments"]
-)
-app.include_router(
-    leads.router,
-    prefix=f"{settings.API_PREFIX}/leads",
-    tags=["leads"]
-)
-
-@app.on_event("startup")
-async def startup_event():
-    init_db()
-
-# Rutas de la interfaz web
 @app.get("/")
-async def dashboard(request: Request):
-    db = next(get_db())
-    crm_service = CRMService(db)
-    
-    # Obtener estadísticas
-    stats = {
-        "total_patients": len(crm_service.get_patients()),
-        "appointments_today": len(crm_service.get_appointments(
-            start_date=datetime.now().replace(hour=0, minute=0),
-            end_date=datetime.now().replace(hour=23, minute=59)
-        )),
-        "active_leads": len(crm_service.get_leads(status="active")),
-        "monthly_revenue": "5,000"  # Ejemplo, ajustar según necesidades
+async def home(request: Request):
+    """Ruta principal que muestra el dashboard"""
+    # Datos de ejemplo para el dashboard
+    mock_stats = {
+        "total_patients": 150,
+        "appointments_today": 8,
+        "active_leads": 25,
+        "monthly_revenue": 15000.00
     }
-    
-    # Obtener próximas citas
-    upcoming_appointments = crm_service.get_appointments(
-        start_date=datetime.now(),
-        end_date=datetime.now() + timedelta(days=7),
-        limit=5
+
+    # Citas próximas de ejemplo
+    mock_upcoming_appointments = [
+        {
+            "patient": {"name": "Juan Pérez"},
+            "date": datetime.now() + timedelta(days=1),
+            "service_type": "Consulta General",
+            "status": "scheduled"
+        },
+        {
+            "patient": {"name": "María García"},
+            "date": datetime.now() + timedelta(days=2),
+            "service_type": "Limpieza Dental",
+            "status": "scheduled"
+        }
+    ]
+
+    # Leads recientes de ejemplo
+    mock_recent_leads = [
+        {
+            "name": "Carlos Rodríguez",
+            "email": "carlos@example.com",
+            "phone": "555-0101",
+            "status": "new"
+        },
+        {
+            "name": "Ana Martínez",
+            "email": "ana@example.com",
+            "phone": "555-0102",
+            "status": "contacted"
+        }
+    ]
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "user": {
+                "name": "ElBenerDev",
+                "role": "Admin"
+            },
+            "active": "dashboard",
+            "stats": mock_stats,
+            "upcoming_appointments": mock_upcoming_appointments,
+            "recent_leads": mock_recent_leads,
+            "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
     )
-    
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "stats": stats,
-        "upcoming_appointments": upcoming_appointments
-    })
 
 @app.get("/patients")
-async def patients_view(request: Request):
-    db = next(get_db())
-    crm_service = CRMService(db)
-    patients_list = crm_service.get_patients(limit=10)
-    return templates.TemplateResponse("patients.html", {
-        "request": request,
-        "patients": patients_list
-    })
+async def patients_page(request: Request):
+    """Ruta para la página de pacientes"""
+    return templates.TemplateResponse(
+        "patients.html",
+        {
+            "request": request,
+            "user": {
+                "name": "ElBenerDev",
+                "role": "Admin"
+            },
+            "active": "patients",
+            "patients": []
+        }
+    )
 
 @app.get("/appointments")
-async def appointments_view(request: Request):
-    db = next(get_db())
-    crm_service = CRMService(db)
-    appointments_list = crm_service.get_appointments(
-        start_date=datetime.now(),
-        limit=10
+async def appointments_page(request: Request):
+    """Ruta para la página de citas"""
+    # Datos de ejemplo para los pacientes
+    mock_patients = [
+        {"id": 1, "name": "Juan Pérez"},
+        {"id": 2, "name": "María García"},
+        {"id": 3, "name": "Carlos López"}
+    ]
+
+    # Datos de ejemplo para las citas
+    mock_appointments = [
+        {
+            "id": 1,
+            "patient": {"id": 1, "name": "Juan Pérez"},
+            "date": datetime.now() + timedelta(days=1),
+            "service_type": "consulta",
+            "status": "scheduled"
+        },
+        {
+            "id": 2,
+            "patient": {"id": 2, "name": "María García"},
+            "date": datetime.now() + timedelta(days=2),
+            "service_type": "limpieza",
+            "status": "scheduled"
+        }
+    ]
+
+    return templates.TemplateResponse(
+        "appointments.html",
+        {
+            "request": request,
+            "user": {
+                "name": "ElBenerDev",
+                "role": "Admin"
+            },
+            "active": "appointments",
+            "appointments": mock_appointments,
+            "patients": mock_patients,
+            "datetime": datetime  # Añadimos datetime para usar en el template
+        }
     )
-    return templates.TemplateResponse("appointments.html", {
-        "request": request,
-        "appointments": appointments_list
-    })
 
 @app.get("/leads")
-async def leads_view(request: Request):
-    db = next(get_db())
-    crm_service = CRMService(db)
-    leads_list = crm_service.get_leads(limit=10)
-    return templates.TemplateResponse("leads.html", {
-        "request": request,
-        "leads": leads_list
-    })
+async def leads_page(request: Request):
+    """Ruta para la página de leads"""
+    return templates.TemplateResponse(
+        "leads.html",
+        {
+            "request": request,
+            "user": {
+                "name": "ElBenerDev",
+                "role": "Admin"
+            },
+            "active": "leads",
+            "leads": []
+        }
+    )
 
-# Rutas API existentes
-@app.get("/api")
-async def root():
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "timestamp": datetime.utcnow(),
-        "status": "running"
-    }
+@app.get("/settings")
+async def settings_page(request: Request):
+    """Ruta para la página de configuración"""
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "user": {
+                "name": "ElBenerDev",
+                "role": "Admin"
+            },
+            "active": "settings"
+        }
+    )
 
 @app.get("/health")
 async def health_check():
+    """Endpoint para verificar el estado del servidor"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat()
     }
 
+
+@app.get("/appointments")
+async def appointments_page(request: Request):
+    """Ruta para la página de citas"""
+    # Ejemplo de datos de pacientes (reemplazar con datos reales de la BD)
+    sample_patients = [
+        {"id": 1, "name": "Juan Pérez"},
+        {"id": 2, "name": "María García"},
+        {"id": 3, "name": "Carlos López"}
+    ]
+
+    # Ejemplo de citas (reemplazar con datos reales de la BD)
+    sample_appointments = [
+        {
+            "id": 1,
+            "patient": {"name": "Juan Pérez"},
+            "date": datetime.now() + timedelta(days=1),
+            "service_type": "consulta",
+            "status": "scheduled"
+        },
+        {
+            "id": 2,
+            "patient": {"name": "María García"},
+            "date": datetime.now() + timedelta(days=2),
+            "service_type": "limpieza",
+            "status": "scheduled"
+        }
+    ]
+
+    return templates.TemplateResponse(
+        "appointments.html",
+        {
+            "request": request,
+            "user": {
+                "name": "ElBenerDev",
+                "role": "Admin"
+            },
+            "active": "appointments",
+            "appointments": sample_appointments,
+            "patients": sample_patients
+        }
+    )
+
+@app.post("/api/webhook")
+async def webhook(request: Request):
+    data = await request.json()
+    print("Datos recibidos:", data)  # Para debug
+    return {"status": "success", "data": data}
+
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
-    )   
+    port = int(os.getenv("PORT", 8000))
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=True)

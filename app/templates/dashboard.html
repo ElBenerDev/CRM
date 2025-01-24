@@ -1,65 +1,73 @@
 {% extends "base.html" %}
 {% set active = 'dashboard' %}
 
+{% block title %}Dashboard - Dental CRM{% endblock %}
+{% block header %}Dashboard{% endblock %}
+
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-    <!-- Card Pacientes -->
-    <div class="bg-white p-6 rounded-lg shadow">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Tarjeta de Pacientes -->
+    <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-            <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
+            <div class="p-3 rounded-full bg-blue-500 bg-opacity-10">
                 <i class="fas fa-users text-blue-500 text-2xl"></i>
             </div>
             <div class="ml-4">
                 <p class="text-gray-500">Total Pacientes</p>
-                <h3 class="text-2xl font-bold">{{ stats.total_patients }}</h3>
+                <p class="text-2xl font-semibold">{{ stats.total_patients if stats else 0 }}</p>
             </div>
         </div>
     </div>
 
-    <!-- Card Citas -->
-    <div class="bg-white p-6 rounded-lg shadow">
+    <!-- Tarjeta de Citas -->
+    <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-            <div class="p-3 rounded-full bg-green-500 bg-opacity-20">
-                <i class="fas fa-calendar-alt text-green-500 text-2xl"></i>
+            <div class="p-3 rounded-full bg-green-500 bg-opacity-10">
+                <i class="fas fa-calendar text-green-500 text-2xl"></i>
             </div>
             <div class="ml-4">
                 <p class="text-gray-500">Citas Hoy</p>
-                <h3 class="text-2xl font-bold">{{ stats.appointments_today }}</h3>
+                <p class="text-2xl font-semibold">{{ stats.appointments_today if stats else 0 }}</p>
             </div>
         </div>
     </div>
 
-    <!-- Card Leads -->
-    <div class="bg-white p-6 rounded-lg shadow">
+    <!-- Tarjeta de Leads -->
+    <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-            <div class="p-3 rounded-full bg-yellow-500 bg-opacity-20">
-                <i class="fas fa-funnel-dollar text-yellow-500 text-2xl"></i>
+            <div class="p-3 rounded-full bg-yellow-500 bg-opacity-10">
+                <i class="fas fa-star text-yellow-500 text-2xl"></i>
             </div>
             <div class="ml-4">
                 <p class="text-gray-500">Leads Activos</p>
-                <h3 class="text-2xl font-bold">{{ stats.active_leads }}</h3>
+                <p class="text-2xl font-semibold">{{ stats.active_leads if stats else 0 }}</p>
             </div>
         </div>
     </div>
 
-    <!-- Card Ingresos -->
-    <div class="bg-white p-6 rounded-lg shadow">
+    <!-- Tarjeta de Ingresos -->
+    <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-            <div class="p-3 rounded-full bg-purple-500 bg-opacity-20">
+            <div class="p-3 rounded-full bg-purple-500 bg-opacity-10">
                 <i class="fas fa-dollar-sign text-purple-500 text-2xl"></i>
             </div>
             <div class="ml-4">
                 <p class="text-gray-500">Ingresos Mes</p>
-                <h3 class="text-2xl font-bold">${{ stats.monthly_revenue }}</h3>
+                <p class="text-2xl font-semibold">${{ "{:,.2f}".format(stats.monthly_revenue if stats else 0) }}</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Próximas Citas -->
-<div class="mt-8">
-    <h2 class="text-xl font-bold mb-4">Próximas Citas</h2>
-    <div class="bg-white rounded-lg shadow">
+<div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">Próximas Citas</h2>
+        <a href="/appointments" class="text-blue-500 hover:text-blue-700">
+            Ver todas <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
         <table class="min-w-full">
             <thead>
                 <tr class="bg-gray-50">
@@ -70,21 +78,76 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                {% for appointment in upcoming_appointments %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ appointment.patient.name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ appointment.date.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ appointment.service_type }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            {% if appointment.status == 'scheduled' %}bg-green-100 text-green-800
-                            {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
-                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                            {{ appointment.status }}
-                        </span>
-                    </td>
+                {% if upcoming_appointments %}
+                    {% for appointment in upcoming_appointments %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ appointment.patient.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ appointment.date.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ appointment.service_type }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if appointment.status == 'scheduled' %}bg-green-100 text-green-800
+                                {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ appointment.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                            No hay citas próximas programadas
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Últimos Leads -->
+<div class="bg-white rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">Últimos Leads</h2>
+        <a href="/leads" class="text-blue-500 hover:text-blue-700">
+            Ver todos <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                 </tr>
-                {% endfor %}
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% if recent_leads %}
+                    {% for lead in recent_leads %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ lead.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ lead.email }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ lead.phone }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if lead.status == 'new' %}bg-green-100 text-green-800
+                                {% elif lead.status == 'contacted' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ lead.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                            No hay leads registrados
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
