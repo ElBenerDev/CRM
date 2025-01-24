@@ -1,20 +1,12 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
 
 class Settings(BaseSettings):
     APP_NAME: str = "Dental CRM"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
-    API_PREFIX: str = "/api"
-    
-    # Database settings
-    DB_USER: str = Field(default="postgres")
-    DB_PASSWORD: str = Field(default="postgres")
-    DB_HOST: str = Field(default="localhost")
-    DB_PORT: int = Field(default=5432)
-    DB_NAME: str = Field(default="dental_crm")
-    
+    DATABASE_URL: str = "postgresql://neondb_owner:npg_mTJhLZ5FtRA3@ep-little-term-a8x9ojn0-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+
     class Config:
         env_file = ".env"
+        extra = "allow"  # Permite campos adicionales
 
 settings = Settings()
