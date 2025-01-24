@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dental CRM{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        .sidebar-nav::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        .toast {
+            animation: slideIn 0.3s ease-in-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-blue-600 text-white overflow-hidden z-10">
+        <div class="flex flex-col h-full">
+            <!-- Logo y título -->
+            <div class="p-4 bg-blue-700">
+                <h1 class="text-2xl font-bold flex items-center">
+                    <i class="fas fa-tooth mr-2"></i>
+                    Dental CRM
+                </h1>
+            </div>
+
+            <!-- Navegación -->
+            <nav class="flex-1 overflow-y-auto sidebar-nav px-2 py-4 space-y-2">
+                <a href="/" class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-blue-700 {% if active=='dashboard' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-chart-line w-5 h-5 mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="/patients" class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-blue-700 {% if active=='patients' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                    <span>Pacientes</span>
+                </a>
+
+                <a href="/appointments" class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-blue-700 {% if active=='appointments' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-calendar-alt w-5 h-5 mr-3"></i>
+                    <span>Citas</span>
+                </a>
+
+                <a href="/leads" class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-blue-700 {% if active=='leads' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-funnel-dollar w-5 h-5 mr-3"></i>
+                    <span>Leads</span>
+                </a>
+
+                <div class="pt-4 mt-4 border-t border-blue-500">
+                    <a href="/settings" class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-blue-700 {% if active=='settings' %}bg-blue-700{% endif %}">
+                        <i class="fas fa-cog w-5 h-5 mr-3"></i>
+                        <span>Configuración</span>
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Usuario -->
+            <div class="p-4 bg-blue-700">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">{{ user.name if user else "Usuario" }}</p>
+                        <p class="text-xs text-blue-200">{{ user.role if user else "Admin" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="ml-64 min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="flex justify-between items-center py-4 px-8">
+                <div class="flex items-center">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        {% block header %}Dashboard{% endblock %}
+                    </h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenido -->
+        <main class="p-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', path='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+
+    <!-- Inicialización -->
+    <script>
+        // Configurar interceptores para mostrar/ocultar loader
+        let activeRequests = 0;
+        const loader = document.getElementById('loader');
+
+        function updateLoader() {
+            loader.style.display = activeRequests > 0 ? 'flex' : 'none';
+        }
+
+        // Interceptar todas las peticiones fetch
+        const originalFetch = window.fetch;
+        window.fetch = function() {
+            activeRequests++;
+            updateLoader();
+            
+            return originalFetch.apply(this, arguments)
+                .finally(() => {
+                    activeRequests--;
+                    updateLoader();
+                });
+        }
+
+        // Cerrar modales con Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.fixed:not(.hidden)');
+                modals.forEach(modal => {
+                    if (modal.id !== 'loader') {
+                        toggleModal(modal.id);
+                    }
+                });
+            }
+        });
+
+        // Inicializar tooltips y otros componentes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Aquí puedes agregar inicializaciones adicionales
+        });
+    </script>
+</body>
+</html>
