@@ -2,18 +2,22 @@ from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
-from config.settings import settings
 import os
 import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.utils.db import get_db, engine, Base, verify_db_connection
 from app.models.models import Patient, Appointment, Lead
-from typing import Optional
-from pydantic import BaseModel
+from app.schemas.schemas import (
+    PatientCreate, PatientResponse,
+    AppointmentCreate, AppointmentResponse,
+    LeadCreate, LeadResponse,
+    AppointmentUpdate
+)
+from config.settings import settings
 
 # Configuración de rutas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -46,34 +50,27 @@ print("🔄 Iniciando configuración de la base de datos...")
 if not init_db():
     raise Exception("Error en la inicialización de la base de datos")
 
-# Modelos Pydantic
-class PatientCreate(BaseModel):
-    name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-
-class AppointmentCreate(BaseModel):
-    patient_id: int
-    date: str
-    service_type: str
-    status: str = "scheduled"
-
-class LeadCreate(BaseModel):
-    name: str
-    email: str
-    phone: str
-    status: str = "nuevo"
-
-class AppointmentUpdate(BaseModel):
-    status: str
-
 # Middleware para logging
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         start_time = time.time()
+        
+        # Log request
+        print(f"\n🔄 Request: {request.method} {request.url}")
+        if request.method in ["POST", "PUT"]:
+            try:
+                body = await request.body()
+                if body:
+                    print(f"📝 Request Body: {body.decode()}")
+            except Exception as e:
+                print(f"❌ Error reading request body: {str(e)}")
+
         response = await call_next(request)
+        
+        # Log response
         process_time = time.time() - start_time
-        print(f"{request.method} {request.url.path} completed in {process_time:.2f}s with status {response.status_code}")
+        print(f"✅ Response: Status {response.status_code} in {process_time:.2f}s")
+        
         return response
 
 # Crear aplicación FastAPI
@@ -261,16 +258,42 @@ async def delete_patient(patient_id: int, db: Session = Depends(get_db)):
 # API Endpoints para Citas
 @app.post("/api/appointments/")
 async def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get_db)):
-    new_appointment = Appointment(
-        patient_id=appointment.patient_id,
-        date=datetime.strptime(appointment.date, "%Y-%m-%dT%H:%M"),
-        service_type=appointment.service_type,
-        status=appointment.status
-    )
-    db.add(new_appointment)
-    db.commit()
-    db.refresh(new_appointment)
-    return new_appointment
+    try:
+        # Verificar si el paciente existe
+        patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail="Paciente no encontrado")
+
+        # Convertir la fecha
+        appointment_date = datetime.strptime(appointment.date, "%Y-%m-%dT%H:%M")
+
+        # Crear la cita
+        new_appointment = Appointment(
+            patient_id=appointment.patient_id,
+            date=appointment_date,
+            service_type=appointment.service_type,
+            status="scheduled"
+        )
+        
+        db.add(new_appointment)
+        db.commit()
+        db.refresh(new_appointment)
+        
+        return JSONResponse(
+            status_code=201,
+            content={
+                "id": new_appointment.id,
+                "patient_id": new_appointment.patient_id,
+                "date": new_appointment.date.isoformat(),
+                "service_type": new_appointment.service_type,
+                "status": new_appointment.status
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/api/appointments/{appointment_id}/cancel")
 async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
@@ -340,7 +363,33 @@ async def not_found_error(request: Request, exc: HTTPException):
         status_code=404
     )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"❌ Error Global: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Error interno del servidor",
+            "error": str(exc)
+        }
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    print(f"❌ HTTP Error: {exc.status_code} - {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port, reload=True)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+        workers=4
+    )

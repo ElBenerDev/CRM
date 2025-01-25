@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.utils.db import Base
 from app.utils.db import engine
+from datetime import datetime
+
 Base.metadata.create_all(bind=engine)
 
 class Patient(Base):
@@ -16,12 +18,15 @@ class Patient(Base):
 
 class Appointment(Base):
     __tablename__ = "appointments"
+
     id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"))
+    patient_id = Column(Integer, ForeignKey("patients.id", ondelete="CASCADE"))
     date = Column(DateTime, nullable=False)
     service_type = Column(String, nullable=False)
     status = Column(String, default="scheduled")
-    created_at = Column(DateTime, default=func.now())
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     patient = relationship("Patient", back_populates="appointments")
 
 class Lead(Base):
