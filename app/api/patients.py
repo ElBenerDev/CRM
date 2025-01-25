@@ -3,17 +3,23 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.utils.db import get_db
 from app.services.crm import CRMService
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from pydantic import BaseModel, EmailStr, validator
 
 router = APIRouter()
 
 class PatientBase(BaseModel):
     name: str
-    email: EmailStr
+    email: str  # Cambiado de EmailStr a str para ser más flexible
     phone: str
     address: Optional[str] = None
     notes: Optional[str] = None
+
+    @validator('email')
+    def validate_email(cls, v):
+        if not v or '@' not in v:
+            raise ValueError('Must be a valid email address')
+        return val[str] = None
 
 class PatientCreate(PatientBase):
     pass

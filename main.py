@@ -95,7 +95,7 @@ app.add_middleware(LoggingMiddleware)
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -476,14 +476,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         }
     )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
+
 
 
 if __name__ == "__main__":

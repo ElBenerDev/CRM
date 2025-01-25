@@ -155,27 +155,41 @@ function toggleModal(modalId) {
 document.getElementById('newPatientForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData(this);
-    const formDataObj = Object.fromEntries(formData.entries());
+    const formDataObj = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        // Agregamos valores por defecto para campos opcionales
+        address: formData.get('address') || null,
+        notes: formData.get('notes') || null
+    };
+    
+    console.log('📦 Datos a enviar:', formDataObj);
     
     try {
         const response = await fetch('/api/patients/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(formDataObj)
         });
+        
+        console.log('📡 Estado:', response.status);
+        const text = await response.text();
+        console.log('📄 Respuesta:', text);
         
         if (response.ok) {
             showNotification('Paciente agregado exitosamente', 'success');
             toggleModal('addPatientModal');
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            const error = await response.json();
+            const error = text.startsWith('{') ? JSON.parse(text) : { detail: text };
             throw new Error(error.detail || 'Error al agregar paciente');
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
         showNotification(error.message, 'error');
     }
 });
