@@ -253,20 +253,49 @@ async def settings_page(request: Request):
     )
 
 # API Endpoints para Pacientes
-@app.post("/api/patients/")
+@app.post("/api/patients/", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
 async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
-    new_patient = Patient(**patient.dict())
-    db.add(new_patient)
-    db.commit()
-    db.refresh(new_patient)
-    return new_patient
+    """Crear un nuevo paciente"""
+    try:
+        # Crear instancia del modelo Patient
+        new_patient = Patient(
+            name=patient.name,
+            email=patient.email,
+            phone=patient.phone,
+            address=patient.address,
+            notes=patient.notes,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        # Guardar en la base de datos
+        db.add(new_patient)
+        db.commit()
+        db.refresh(new_patient)
+        
+        print(f"✅ Paciente creado: {new_patient.name}")
+        return new_patient
+        
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error al crear paciente: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear el paciente: {str(e)}"
+        )
 
-@app.get("/api/patients/{patient_id}")
-async def get_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Paciente no encontrado")
-    return patient
+@app.get("/api/patients/", response_model=List[PatientResponse])
+async def get_patients(db: Session = Depends(get_db)):
+    """Obtener todos los pacientes"""
+    try:
+        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+        return patients
+    except Exception as e:
+        print(f"❌ Error al obtener pacientes: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener pacientes: {str(e)}"
+        )
 
 @app.delete("/api/patients/{patient_id}")
 async def delete_patient(patient_id: int, db: Session = Depends(get_db)):

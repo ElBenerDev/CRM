@@ -230,7 +230,37 @@ async def home(request: Request, db: Session = Depends(get_db)):
             },
             status_code=500
         )
-
+@app.post("/api/patients/", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
+    """Crear un nuevo paciente"""
+    try:
+        # Crear instancia del modelo Patient
+        new_patient = Patient(
+            name=patient.name,
+            email=patient.email,
+            phone=patient.phone,
+            address=patient.address,
+            notes=patient.notes,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        # Guardar en la base de datos
+        db.add(new_patient)
+        db.commit()
+        db.refresh(new_patient)
+        
+        print(f"✅ Paciente creado: {new_patient.name}")
+        return new_patient
+        
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error al crear paciente: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear el paciente: {str(e)}"
+        )
+    
 @app.get("/patients", response_class=HTMLResponse)
 @app.head("/patients")
 async def patients_page(request: Request, db: Session = Depends(get_db)):
