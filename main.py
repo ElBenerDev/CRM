@@ -21,6 +21,21 @@ from app.schemas.schemas import (
 from config.settings import settings
 from fastapi import status
 
+# Middleware de Debug - COLOCAR AQUÍ
+class DebugMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        print(f"\n🔍 DEBUG - Request path: {request.url.path}")
+        print(f"🔍 DEBUG - Templates dir: {TEMPLATES_DIR}")
+        print(f"🔍 DEBUG - Template files: {os.listdir(TEMPLATES_DIR)}")
+        
+        try:
+            response = await call_next(request)
+            print(f"🔍 DEBUG - Response status: {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"❌ DEBUG - Error: {str(e)}")
+            raise e
+
 # Crear una única instancia de FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
@@ -28,16 +43,18 @@ app = FastAPI(
     version=settings.APP_VERSION,
 )
 
-# Configuración CORS mejorada
+# Agregar los middlewares en orden
+app.add_middleware(DebugMiddleware)  # Primero el Debug
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especifica los dominios exactos
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,
 )
+
 
 # Configuración de rutas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -192,6 +209,43 @@ async def home(request: Request, db: Session = Depends(get_db)):
             status_code=500,
             detail="Error al cargar el dashboard"
         )
+
+@app.get("/patients")
+async def patients_page(request: Request, db: Session = Depends(get_db)):
+    """Ruta para la página de pacientes"""
+    try:
+        # Verificar si el template existe
+        template_path = os.path.join(TEMPLATES_DIR, "patients.html")
+        if not os.path.exists(template_path):
+            print(f"❌ Template no encontrado: {template_path}")
+            raise HTTPException(status_code=500, detail="Template no encontrado")
+
+        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+        print(f"✅ Pacientes encontrados: {len(patients)}")
+        
+        return templates.TemplateResponse(
+            "patients.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "patients",
+                "patients": patients,
+                "datetime": datetime
+            }
+        )
+    except Exception as e:
+        print(f"❌ Error en patients_page: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar la página de pacientes: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "patients"
+            },
+            status_code=500
+        )
+
 
 # Endpoint de verificación de salud del sistema
 @app.get("/health")

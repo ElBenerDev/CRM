@@ -173,16 +173,38 @@ async def home(request: Request, db: Session = Depends(get_db)):
 @app.get("/patients")
 async def patients_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de pacientes"""
-    patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-    return templates.TemplateResponse(
-        "patients.html",
-        {
-            "request": request,
-            "user": {"name": "ElBenerDev", "role": "Admin"},
-            "active": "patients",
-            "patients": patients
-        }
-    )
+    try:
+        # Verificar si el template existe
+        template_path = os.path.join(TEMPLATES_DIR, "patients.html")
+        if not os.path.exists(template_path):
+            print(f"❌ Template no encontrado: {template_path}")
+            raise HTTPException(status_code=500, detail="Template no encontrado")
+
+        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+        print(f"✅ Pacientes encontrados: {len(patients)}")
+        
+        return templates.TemplateResponse(
+            "patients.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "patients",
+                "patients": patients,
+                "datetime": datetime
+            }
+        )
+    except Exception as e:
+        print(f"❌ Error en patients_page: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar la página de pacientes: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "patients"
+            },
+            status_code=500
+        )
 
 @app.get("/appointments")
 async def appointments_page(request: Request, db: Session = Depends(get_db)):
