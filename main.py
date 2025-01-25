@@ -7,16 +7,38 @@ from config.settings import settings
 import os
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.utils.db import get_db
+from app.utils.db import get_db, engine, Base, verify_db_connection
 from app.models.models import Patient, Appointment, Lead
 from typing import Optional
 from pydantic import BaseModel
+
+# Verificar conexión a la base de datos y crear tablas
+def init_db():
+    try:
+        # Primero verificar la conexión
+        if not verify_db_connection():
+            raise Exception("No se pudo establecer conexión con la base de datos")
+        
+        # Si la conexión es exitosa, crear las tablas
+        Base.metadata.create_all(bind=engine)
+        print("✅ Base de datos inicializada correctamente")
+        print("✅ Tablas creadas/verificadas correctamente")
+        
+    except Exception as e:
+        print(f"❌ Error al inicializar la base de datos: {str(e)}")
+        raise
+
+# Inicializar base de datos
+print("🔄 Iniciando configuración de la base de datos...")
+init_db()
+print("✅ Configuración de base de datos completada")
 
 # Modelos Pydantic
 class PatientCreate(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
+
 
 class AppointmentCreate(BaseModel):
     patient_id: int
