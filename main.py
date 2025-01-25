@@ -7,6 +7,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
 from pydantic import ValidationError
 from typing import List, Optional
+from datetime import timezone
+
 import os
 import time
 from sqlalchemy.orm import Session
@@ -233,39 +235,26 @@ async def home(request: Request, db: Session = Depends(get_db)):
         )
 @app.post("/api/patients/", response_model=PatientResponse)
 async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
-    """Crear un nuevo paciente"""
     try:
-        print(f"📥 Datos recibidos: {patient.model_dump()}")
-        
-        # Crear instancia del modelo Patient
         new_patient = Patient(
             name=patient.name,
             email=patient.email,
             phone=patient.phone,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         
-        # Guardar en la base de datos
         db.add(new_patient)
         db.commit()
         db.refresh(new_patient)
         
-        print(f"✅ Paciente creado: {new_patient.name}")
         return new_patient
         
-    except ValidationError as e:
-        print(f"❌ Error de validación: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
     except Exception as e:
         db.rollback()
-        print(f"❌ Error al crear paciente: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear el paciente: {str(e)}"
+            detail=str(e)
         )
     
 @app.get("/patients", response_class=HTMLResponse)
