@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
+from pydantic import ValidationError
 from typing import List, Optional
 import os
 import time
@@ -230,17 +231,17 @@ async def home(request: Request, db: Session = Depends(get_db)):
             },
             status_code=500
         )
-@app.post("/api/patients/", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/api/patients/", response_model=PatientResponse)
 async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     """Crear un nuevo paciente"""
     try:
+        print(f"📥 Datos recibidos: {patient.model_dump()}")
+        
         # Crear instancia del modelo Patient
         new_patient = Patient(
             name=patient.name,
             email=patient.email,
             phone=patient.phone,
-            address=patient.address,
-            notes=patient.notes,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -253,6 +254,12 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
         print(f"✅ Paciente creado: {new_patient.name}")
         return new_patient
         
+    except ValidationError as e:
+        print(f"❌ Error de validación: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
     except Exception as e:
         db.rollback()
         print(f"❌ Error al crear paciente: {str(e)}")
