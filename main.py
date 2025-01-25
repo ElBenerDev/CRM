@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import PlainTextResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
 from config.settings import settings
 import os
@@ -14,22 +15,28 @@ from app.models.models import Patient, Appointment, Lead
 from typing import Optional
 from pydantic import BaseModel
 
+# Configuración de rutas
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
 
+# Verificar y crear directorios si no existen
+os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "css"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "img"), exist_ok=True)
 
+print(f"📁 Directorio base: {BASE_DIR}")
+print(f"📁 Directorio estático: {STATIC_DIR}")
+print(f"📁 Directorio templates: {TEMPLATES_DIR}")
 
+# Verificar conexión a la base de datos y crear tablas
 def init_db():
     try:
-        # Primero verificar la conexión
         if not verify_db_connection():
-            print("❌ No se pudo verificar la conexión a la base de datos")
-            return False
-        
-        # Si la conexión es exitosa, crear las tablas
+            raise Exception("No se pudo establecer conexión con la base de datos")
         Base.metadata.create_all(bind=engine)
         print("✅ Base de datos inicializada correctamente")
-        print("✅ Tablas creadas/verificadas correctamente")
         return True
-        
     except Exception as e:
         print(f"❌ Error al inicializar la base de datos: {str(e)}")
         return False
@@ -38,16 +45,12 @@ def init_db():
 print("🔄 Iniciando configuración de la base de datos...")
 if not init_db():
     raise Exception("Error en la inicialización de la base de datos")
-print("✅ Configuración de base de datos completada")
-
-
 
 # Modelos Pydantic
 class PatientCreate(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-
 
 class AppointmentCreate(BaseModel):
     patient_id: int
@@ -64,17 +67,24 @@ class LeadCreate(BaseModel):
 class AppointmentUpdate(BaseModel):
     status: str
 
+# Middleware para logging
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        print(f"{request.method} {request.url.path} completed in {process_time:.2f}s with status {response.status_code}")
+        return response
+
+# Crear aplicación FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
     description="Sistema CRM para gestión dental",
     version=settings.APP_VERSION,
 )
 
-# Montar archivos estáticos
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-# Configurar templates
-templates = Jinja2Templates(directory="app/templates")
+# Configurar middleware
+app.add_middleware(LoggingMiddleware)
 
 # Configurar CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
@@ -85,6 +95,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Montar archivos estáticos
+try:
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    print("✅ Archivos estáticos montados correctamente")
+except Exception as e:
+    print(f"❌ Error al montar archivos estáticos: {str(e)}")
+    print(f"📁 Verificando contenido de {STATIC_DIR}:")
+    for root, dirs, files in os.walk(STATIC_DIR):
+        print(f"  📂 {root}")
+        for d in dirs:
+            print(f"    📁 {d}")
+        for f in files:
+            print(f"    📄 {f}")
+
+# Configurar templates
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # Rutas de páginas
 @app.get("/")
@@ -296,23 +323,22 @@ async def create_backup():
     # Aquí iría la lógica para crear el respaldo
     return {"status": "success", "message": "Respaldo iniciado correctamente"}
 
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        start_time = time.time()
-        response = await call_next(request)
-        process_time = time.time() - start_time
-        print(f"{request.method} {request.url.path} completed in {process_time:.2f}s with status {response.status_code}")
-        return response
-
-app.add_middleware(LoggingMiddleware)
-
-
-# Obtener la ruta base del proyecto
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Montar archivos estáticos con la ruta completa
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "app/static")), name="static")
+# Manejador de errores 404
+@app.exception_handler(404)
+async def not_found_error(request: Request, exc: HTTPException):
+    if request.url.path.startswith('/static/'):
+        print(f"❌ Archivo estático no encontrado: {request.url.path}")
+        return PlainTextResponse("File not found", status_code=404)
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_message": "Página no encontrada",
+            "user": {"name": "ElBenerDev", "role": "Admin"},
+            "active": ""
+        },
+        status_code=404
+    )
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

@@ -8,7 +8,12 @@ const CONFIG = {
         minute: '2-digit'
     },
     NOTIFICATION_DURATION: 3000,
-    API_BASE_URL: '' // Agregar tu URL base si es necesario
+    API_BASE_URL: '', // Agregar tu URL base si es necesario
+    USER: {
+        name: 'ElBenerDev',
+        role: 'Admin',
+        lastLogin: '2025-01-25 01:21:20'
+    }
 };
 
 // Clase para manejar notificaciones
@@ -29,14 +34,34 @@ class NotificationManager {
         if (!this.container) this.initialize();
 
         const notification = document.createElement('div');
-        notification.className = `px-6 py-4 rounded-lg text-white toast ${
+        notification.className = `px-6 py-4 rounded-lg text-white toast flex items-center ${
             type === 'success' ? 'bg-green-500' : 'bg-red-500'
         }`;
-        notification.textContent = message;
+
+        // Agregar ícono
+        const icon = document.createElement('i');
+        icon.className = `fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2`;
+        notification.appendChild(icon);
+
+        // Agregar mensaje
+        const text = document.createElement('span');
+        text.textContent = message;
+        notification.appendChild(text);
+
         this.container.appendChild(notification);
 
+        // Animación de entrada
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateX(0)';
+        }, 10);
+
+        // Animación de salida
         setTimeout(() => {
             notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
             setTimeout(() => notification.remove(), 300);
         }, CONFIG.NOTIFICATION_DURATION);
     }
@@ -59,12 +84,20 @@ class ModalManager {
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
         modal.setAttribute('aria-hidden', 'false');
+
+        // Enfocar el primer input si existe
+        const firstInput = modal.querySelector('input, select, textarea');
+        if (firstInput) firstInput.focus();
     }
 
     static closeModal(modal) {
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto';
         modal.setAttribute('aria-hidden', 'true');
+
+        // Limpiar formularios si existen
+        const form = modal.querySelector('form');
+        if (form) form.reset();
     }
 
     static closeAll() {
@@ -114,6 +147,26 @@ class DateFormatter {
             return dateString;
         }
     }
+
+    static formatAppointmentDate(dateString) {
+        try {
+            const date = new Date(dateString);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+
+            if (date.toDateString() === today.toDateString()) {
+                return 'Hoy a las ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else if (date.toDateString() === tomorrow.toDateString()) {
+                return 'Mañana a las ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return this.format(dateString);
+            }
+        } catch (error) {
+            console.error('Error al formatear fecha de cita:', error);
+            return dateString;
+        }
+    }
 }
 
 // Clase para manejar peticiones API
@@ -136,7 +189,8 @@ class ApiService {
                 throw new Error(error.detail || `Error HTTP: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            return data;
         } catch (error) {
             NotificationManager.show(
                 error.message || 'Ha ocurrido un error. Por favor, inténtalo de nuevo.',
@@ -171,7 +225,57 @@ class ApiService {
             method: 'DELETE'
         });
     }
+
+    // Métodos específicos para el CRM
+    static async createPatient(patientData) {
+        return this.post('/api/patients/', patientData);
+    }
+
+    static async createAppointment(appointmentData) {
+        return this.post('/api/appointments/', appointmentData);
+    }
+
+    static async cancelAppointment(appointmentId) {
+        return this.put(`/api/appointments/${appointmentId}/cancel`);
+    }
+
+    static async createLead(leadData) {
+        return this.post('/api/leads/', leadData);
+    }
 }
+
+// Utilidades adicionales
+const Utils = {
+    validateForm(form) {
+        let isValid = true;
+        const errors = [];
+
+        form.querySelectorAll('[required]').forEach(input => {
+            if (!input.value.trim()) {
+                isValid = false;
+                errors.push(`El campo ${input.name || input.id} es requerido`);
+                input.classList.add('border-red-500');
+            } else {
+                input.classList.remove('border-red-500');
+            }
+        });
+
+        if (!isValid) {
+            NotificationManager.show(errors.join('. '), 'error');
+        }
+
+        return isValid;
+    },
+
+    formatPhoneNumber(phone) {
+        const cleaned = ('' + phone).replace(/\D/g, '');
+        const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+        if (match) {
+            return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+        }
+        return phone;
+    }
+};
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -189,18 +293,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Formatear teléfonos automáticamente
+    document.querySelectorAll('input[type="tel"]').forEach(input => {
+        input.addEventListener('input', (e) => {
+            e.target.value = Utils.formatPhoneNumber(e.target.value);
+        });
+    });
+
     // Exponer funciones globalmente
     window.showNotification = NotificationManager.show.bind(NotificationManager);
     window.toggleModal = ModalManager.toggle.bind(ModalManager);
     window.formatDate = DateFormatter.format;
+    window.formatAppointmentDate = DateFormatter.formatAppointmentDate;
     window.getTimeAgo = DateFormatter.getTimeAgo;
     window.api = ApiService;
+    window.utils = Utils;
 });
 
-// Exportar clases para uso en módulos
+// Exportar clases y utilidades
 export {
     NotificationManager,
     ModalManager,
     DateFormatter,
-    ApiService
+    ApiService,
+    Utils
 };
