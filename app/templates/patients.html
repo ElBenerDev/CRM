@@ -1,76 +1,93 @@
 {% extends "base.html" %}
 {% set active = 'patients' %}
 
+{% block title %}Pacientes - Dental CRM{% endblock %}
+{% block header %}Gestión de Pacientes{% endblock %}
+
 {% block content %}
-<div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Pacientes</h1>
-    <button onclick="toggleModal('addPatientModal')" 
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-        <i class="fas fa-plus mr-2"></i>Nuevo Paciente
-    </button>
+<div class="container mx-auto px-4">
+    <!-- Botón Agregar Paciente -->
+    <div class="mb-6">
+        <button onclick="toggleModal('addPatientModal')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            <i class="fas fa-plus"></i> Nuevo Paciente
+        </button>
+    </div>
+
+    <!-- Tabla de Pacientes -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <table class="min-w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Citas</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Registro</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% if patients %}
+                    {% for patient in patients %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ patient.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ patient.email or 'No disponible' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ patient.phone or 'No disponible' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ patient.appointments|length }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ patient.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="viewPatientDetails('{{ patient.id }}')" class="text-blue-600 hover:text-blue-900 mr-2" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="editPatient('{{ patient.id }}')" class="text-green-600 hover:text-green-900 mr-2" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deletePatient('{{ patient.id }}')" class="text-red-600 hover:text-red-900" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No hay pacientes registrados
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<!-- Tabla de Pacientes -->
-<div class="bg-white shadow-md rounded-lg overflow-hidden">
-    <table class="min-w-full">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-            {% for patient in patients %}
-            <tr>
-                <td class="px-6 py-4 whitespace-nowrap">{{ patient.name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ patient.email }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ patient.phone }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <button onclick="toggleModal('editPatientModal-{{ patient.id }}')" 
-                            class="text-blue-600 hover:text-blue-900">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="if(confirm('¿Eliminar este paciente?')) deletePatient({{ patient.id }})" 
-                            class="ml-3 text-red-600 hover:text-red-900">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Modal Nuevo Paciente -->
-<div id="addPatientModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+<!-- Modal Agregar Paciente -->
+<div id="addPatientModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Nuevo Paciente</h3>
-            <form id="newPatientForm" class="mt-2 text-left">
-                <div class="mb-4">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4 text-center">Nuevo Paciente</h3>
+            <form id="newPatientForm" class="space-y-4">
+                <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
-                        Nombre
+                        Nombre Completo
                     </label>
                     <input type="text" name="name" required
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
-                <div class="mb-4">
+                <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
                         Email
                     </label>
-                    <input type="email" name="email" required
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <input type="email" name="email"
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
-                <div class="mb-4">
+                <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
                         Teléfono
                     </label>
-                    <input type="tel" name="phone" required
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <input type="tel" name="phone"
+                           class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
-                <div class="flex items-center justify-between mt-4">
+                <div class="flex items-center justify-between mt-6">
                     <button type="button" onclick="toggleModal('addPatientModal')"
                             class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Cancelar
@@ -85,29 +102,168 @@
     </div>
 </div>
 
+<!-- Modal Ver Detalles del Paciente -->
+<div id="viewPatientModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Detalles del Paciente</h3>
+            <div id="patientDetails" class="space-y-4">
+                <!-- Los detalles se cargarán dinámicamente -->
+            </div>
+            <div class="mt-6 text-right">
+                <button onclick="toggleModal('viewPatientModal')"
+                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('newPatientForm').addEventListener('submit', function(e) {
+function toggleModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    } else {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Formulario de nuevo paciente
+document.getElementById('newPatientForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    submitForm('newPatientForm', '/api/patients/');
+    const formData = new FormData(this);
+    const formDataObj = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch('/api/patients/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formDataObj)
+        });
+        
+        if (response.ok) {
+            showNotification('Paciente agregado exitosamente', 'success');
+            toggleModal('addPatientModal');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al agregar paciente');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification(error.message, 'error');
+    }
 });
 
+async function viewPatientDetails(patientId) {
+    try {
+        const response = await fetch(`/api/patients/${patientId}`);
+        if (response.ok) {
+            const patient = await response.json();
+            const detailsHtml = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="font-bold">Nombre:</p>
+                        <p>${patient.name}</p>
+                    </div>
+                    <div>
+                        <p class="font-bold">Email:</p>
+                        <p>${patient.email || 'No disponible'}</p>
+                    </div>
+                    <div>
+                        <p class="font-bold">Teléfono:</p>
+                        <p>${patient.phone || 'No disponible'}</p>
+                    </div>
+                    <div>
+                        <p class="font-bold">Fecha de registro:</p>
+                        <p>${new Date(patient.created_at).toLocaleDateString()}</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h4 class="font-bold mb-2">Historial de Citas</h4>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2">Fecha</th>
+                                <th class="px-4 py-2">Servicio</th>
+                                <th class="px-4 py-2">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${patient.appointments.map(app => `
+                                <tr>
+                                    <td class="px-4 py-2">${new Date(app.date).toLocaleString()}</td>
+                                    <td class="px-4 py-2">${app.service_type}</td>
+                                    <td class="px-4 py-2">${app.status}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('patientDetails').innerHTML = detailsHtml;
+            toggleModal('viewPatientModal');
+        } else {
+            throw new Error('Error al cargar los detalles del paciente');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
 async function deletePatient(patientId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este paciente?')) {
+        return;
+    }
+    
     try {
         const response = await fetch(`/api/patients/${patientId}`, {
             method: 'DELETE'
         });
+        
         if (response.ok) {
-            window.location.reload();
+            showNotification('Paciente eliminado exitosamente', 'success');
+            setTimeout(() => window.location.reload(), 1500);
         } else {
-            alert('Error al eliminar el paciente');
+            throw new Error('Error al eliminar el paciente');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al eliminar el paciente');
+        showNotification(error.message, 'error');
     }
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Cerrar modales con click fuera
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.fixed');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            toggleModal(modal.id);
+        }
+    });
 }
 </script>
 {% endblock %}

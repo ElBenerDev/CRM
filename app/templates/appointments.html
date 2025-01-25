@@ -44,6 +44,7 @@
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                 {% if appointment.status == 'scheduled' %}bg-green-100 text-green-800
                                 {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
                                 {% else %}bg-yellow-100 text-yellow-800{% endif %}">
                                 {% set status_names = {
                                     'scheduled': 'Programada',
@@ -55,16 +56,13 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="toggleModal('editAppointmentModal-{{ appointment.id|string }}')" 
-                                    class="text-blue-600 hover:text-blue-900 mr-3"
-                                    title="Editar cita">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="confirmCancelAppointment('{{ appointment.id|string }}')" 
-                                    class="text-red-600 hover:text-red-900"
-                                    title="Cancelar cita">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            {% if appointment.status != 'cancelled' and appointment.status != 'completed' %}
+                                <button onclick="confirmCancelAppointment('{{ appointment.id }}')" 
+                                        class="text-red-600 hover:text-red-900"
+                                        title="Cancelar cita">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -143,6 +141,17 @@
 
 {% block scripts %}
 <script>
+function toggleModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    } else {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+}
+
 // Función para confirmar cancelación de cita
 function confirmCancelAppointment(appointmentId) {
     if (confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
@@ -160,19 +169,21 @@ async function cancelAppointment(appointmentId) {
             }
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
             showNotification('Cita cancelada exitosamente', 'success');
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            throw new Error('Error al cancelar la cita');
+            throw new Error(data.detail || 'Error al cancelar la cita');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Error al cancelar la cita', 'error');
+        showNotification(error.message, 'error');
     }
 }
 
-// Función para mostrar notificaciones (si no está definida en main.js)
+// Función para mostrar notificaciones
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white ${
@@ -190,10 +201,11 @@ function showNotification(message, type = 'success') {
 document.getElementById('newAppointmentForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData(this);
-    const formDataObj = {};
-    formData.forEach((value, key) => {
-        formDataObj[key] = value;
-    });
+    const formDataObj = {
+        patient_id: parseInt(formData.get('patient_id')),
+        date: formData.get('date'),
+        service_type: formData.get('service_type')
+    };
     
     try {
         const response = await fetch('/api/appointments/', {
@@ -204,17 +216,27 @@ document.getElementById('newAppointmentForm').addEventListener('submit', async f
             body: JSON.stringify(formDataObj)
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
             showNotification('Cita programada exitosamente', 'success');
             toggleModal('addAppointmentModal');
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            throw new Error('Error al programar la cita');
+            throw new Error(data.detail || 'Error al programar la cita');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Error al programar la cita', 'error');
+        showNotification(error.message, 'error');
     }
 });
+
+// Cerrar modal si se hace clic fuera de él
+window.onclick = function(event) {
+    const modal = document.getElementById('addAppointmentModal');
+    if (event.target === modal) {
+        toggleModal('addAppointmentModal');
+    }
+}
 </script>
 {% endblock %}

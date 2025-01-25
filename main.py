@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -6,8 +6,32 @@ from datetime import datetime, timedelta
 from config.settings import settings
 import os
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.utils.db import get_db
-from app.models.models import Patient, Appointment
+from app.models.models import Patient, Appointment, Lead
+from typing import Optional
+from pydantic import BaseModel
+
+# Modelos Pydantic
+class PatientCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+class AppointmentCreate(BaseModel):
+    patient_id: int
+    date: str
+    service_type: str
+    status: str = "scheduled"
+
+class LeadCreate(BaseModel):
+    name: str
+    email: str
+    phone: str
+    status: str = "nuevo"
+
+class AppointmentUpdate(BaseModel):
+    status: str
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -21,7 +45,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Configurar templates
 templates = Jinja2Templates(directory="app/templates")
 
-# Configurar CORS con origen permitido desde variables de entorno
+# Configurar CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -31,137 +55,111 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rutas de páginas
 @app.get("/")
-async def home(request: Request):
+async def home(request: Request, db: Session = Depends(get_db)):
     """Ruta principal que muestra el dashboard"""
-    # Datos de ejemplo para el dashboard
-    mock_stats = {
-        "total_patients": 150,
-        "appointments_today": 8,
-        "active_leads": 25,
-        "monthly_revenue": 15000.00
-    }
+    # Estadísticas
+    total_patients = db.query(func.count(Patient.id)).scalar() or 0
+    
+    # Citas de hoy
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    appointments_today = db.query(func.count(Appointment.id))\
+        .filter(Appointment.date.between(today_start, today_end))\
+        .scalar() or 0
+    
+    # Citas pendientes y completadas
+    pending_appointments = db.query(func.count(Appointment.id))\
+        .filter(Appointment.status == 'scheduled')\
+        .scalar() or 0
+    
+    completed_appointments = db.query(func.count(Appointment.id))\
+        .filter(Appointment.status == 'completed')\
+        .scalar() or 0
 
-    # Citas próximas de ejemplo
-    mock_upcoming_appointments = [
-        {
-            "patient": {"name": "Juan Pérez"},
-            "date": datetime.now() + timedelta(days=1),
-            "service_type": "Consulta General",
-            "status": "scheduled"
-        },
-        {
-            "patient": {"name": "María García"},
-            "date": datetime.now() + timedelta(days=2),
-            "service_type": "Limpieza Dental",
-            "status": "scheduled"
-        }
-    ]
+    # Próximas citas
+    upcoming_appointments = db.query(Appointment)\
+        .filter(Appointment.date >= datetime.now())\
+        .filter(Appointment.status == 'scheduled')\
+        .order_by(Appointment.date)\
+        .limit(5)\
+        .all()
 
-    # Leads recientes de ejemplo
-    mock_recent_leads = [
-        {
-            "name": "Carlos Rodríguez",
-            "email": "carlos@example.com",
-            "phone": "555-0101",
-            "status": "new"
-        },
-        {
-            "name": "Ana Martínez",
-            "email": "ana@example.com",
-            "phone": "555-0102",
-            "status": "contacted"
-        }
-    ]
+    # Últimos pacientes
+    recent_patients = db.query(Patient)\
+        .order_by(Patient.created_at.desc())\
+        .limit(5)\
+        .all()
+
+    # Leads activos
+    active_leads = db.query(func.count(Lead.id))\
+        .filter(Lead.status.in_(['nuevo', 'contactado']))\
+        .scalar() or 0
 
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
-            "user": {
-                "name": "ElBenerDev",
-                "role": "Admin"
-            },
+            "user": {"name": "ElBenerDev", "role": "Admin"},
             "active": "dashboard",
-            "stats": mock_stats,
-            "upcoming_appointments": mock_upcoming_appointments,
-            "recent_leads": mock_recent_leads,
-            "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "stats": {
+                "total_patients": total_patients,
+                "appointments_today": appointments_today,
+                "pending_appointments": pending_appointments,
+                "completed_appointments": completed_appointments,
+                "active_leads": active_leads
+            },
+            "upcoming_appointments": upcoming_appointments,
+            "recent_patients": recent_patients
         }
     )
 
 @app.get("/patients")
-async def patients_page(request: Request):
+async def patients_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de pacientes"""
+    patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
     return templates.TemplateResponse(
         "patients.html",
         {
             "request": request,
-            "user": {
-                "name": "ElBenerDev",
-                "role": "Admin"
-            },
+            "user": {"name": "ElBenerDev", "role": "Admin"},
             "active": "patients",
-            "patients": []
+            "patients": patients
         }
     )
 
 @app.get("/appointments")
-async def appointments_page(request: Request):
+async def appointments_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de citas"""
-    # Datos de ejemplo para los pacientes
-    mock_patients = [
-        {"id": 1, "name": "Juan Pérez"},
-        {"id": 2, "name": "María García"},
-        {"id": 3, "name": "Carlos López"}
-    ]
-
-    # Datos de ejemplo para las citas
-    mock_appointments = [
-        {
-            "id": 1,
-            "patient": {"id": 1, "name": "Juan Pérez"},
-            "date": datetime.now() + timedelta(days=1),
-            "service_type": "consulta",
-            "status": "scheduled"
-        },
-        {
-            "id": 2,
-            "patient": {"id": 2, "name": "María García"},
-            "date": datetime.now() + timedelta(days=2),
-            "service_type": "limpieza",
-            "status": "scheduled"
-        }
-    ]
+    appointments = db.query(Appointment)\
+        .order_by(Appointment.date.desc())\
+        .all()
+    patients = db.query(Patient).order_by(Patient.name).all()
 
     return templates.TemplateResponse(
         "appointments.html",
         {
             "request": request,
-            "user": {
-                "name": "ElBenerDev",
-                "role": "Admin"
-            },
+            "user": {"name": "ElBenerDev", "role": "Admin"},
             "active": "appointments",
-            "appointments": mock_appointments,
-            "patients": mock_patients,
-            "datetime": datetime  # Añadimos datetime para usar en el template
+            "appointments": appointments,
+            "patients": patients,
+            "datetime": datetime
         }
     )
 
 @app.get("/leads")
-async def leads_page(request: Request):
+async def leads_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de leads"""
+    leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
     return templates.TemplateResponse(
         "leads.html",
         {
             "request": request,
-            "user": {
-                "name": "ElBenerDev",
-                "role": "Admin"
-            },
+            "user": {"name": "ElBenerDev", "role": "Admin"},
             "active": "leads",
-            "leads": []
+            "leads": leads
         }
     )
 
@@ -172,94 +170,100 @@ async def settings_page(request: Request):
         "settings.html",
         {
             "request": request,
-            "user": {
-                "name": "ElBenerDev",
-                "role": "Admin"
-            },
+            "user": {"name": "ElBenerDev", "role": "Admin"},
             "active": "settings"
         }
     )
 
-@app.get("/health")
-async def health_check():
-    """Endpoint para verificar el estado del servidor"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat()
-    }
+# API Endpoints para Pacientes
+@app.post("/api/patients/")
+async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
+    new_patient = Patient(**patient.dict())
+    db.add(new_patient)
+    db.commit()
+    db.refresh(new_patient)
+    return new_patient
 
+@app.get("/api/patients/{patient_id}")
+async def get_patient(patient_id: int, db: Session = Depends(get_db)):
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
+    return patient
 
-@app.get("/appointments")
-async def appointments_page(request: Request):
-    """Ruta para la página de citas"""
-    # Ejemplo de datos de pacientes (reemplazar con datos reales de la BD)
-    sample_patients = [
-        {"id": 1, "name": "Juan Pérez"},
-        {"id": 2, "name": "María García"},
-        {"id": 3, "name": "Carlos López"}
-    ]
+@app.delete("/api/patients/{patient_id}")
+async def delete_patient(patient_id: int, db: Session = Depends(get_db)):
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
+    db.delete(patient)
+    db.commit()
+    return {"status": "success"}
 
-    # Ejemplo de citas (reemplazar con datos reales de la BD)
-    sample_appointments = [
-        {
-            "id": 1,
-            "patient": {"name": "Juan Pérez"},
-            "date": datetime.now() + timedelta(days=1),
-            "service_type": "consulta",
-            "status": "scheduled"
-        },
-        {
-            "id": 2,
-            "patient": {"name": "María García"},
-            "date": datetime.now() + timedelta(days=2),
-            "service_type": "limpieza",
-            "status": "scheduled"
-        }
-    ]
-
-    return templates.TemplateResponse(
-        "appointments.html",
-        {
-            "request": request,
-            "user": {
-                "name": "ElBenerDev",
-                "role": "Admin"
-            },
-            "active": "appointments",
-            "appointments": sample_appointments,
-            "patients": sample_patients
-        }
+# API Endpoints para Citas
+@app.post("/api/appointments/")
+async def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get_db)):
+    new_appointment = Appointment(
+        patient_id=appointment.patient_id,
+        date=datetime.strptime(appointment.date, "%Y-%m-%dT%H:%M"),
+        service_type=appointment.service_type,
+        status=appointment.status
     )
+    db.add(new_appointment)
+    db.commit()
+    db.refresh(new_appointment)
+    return new_appointment
 
-@app.post("/api/webhook")
-async def webhook(request: Request):
-    data = await request.json()
-    print("Datos recibidos:", data)  # Para debug
-    return {"status": "success", "data": data}
+@app.put("/api/appointments/{appointment_id}/cancel")
+async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    appointment.status = "cancelled"
+    db.commit()
+    return {"status": "success"}
 
-@app.get("/api/debug/patients")
-async def get_patients(db: Session = Depends(get_db)):
-    patients = db.query(Patient).all()
-    return {"patients": [
-        {
-            "id": p.id, 
-            "name": p.name,
-            "appointments": len(p.appointments)
-        } for p in patients
-    ]}
+# API Endpoints para Leads
+@app.post("/api/leads/")
+async def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
+    new_lead = Lead(**lead.dict())
+    db.add(new_lead)
+    db.commit()
+    db.refresh(new_lead)
+    return new_lead
 
-@app.get("/api/debug/appointments")
-async def get_appointments(db: Session = Depends(get_db)):
-    appointments = db.query(Appointment).all()
-    return {"appointments": [
-        {
-            "id": a.id,
-            "patient_name": a.patient.name,
-            "date": a.date.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": a.status,
-            "service_type": a.service_type
-        } for a in appointments
-    ]}
+@app.get("/api/leads/{lead_id}")
+async def get_lead(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    return lead
+
+@app.put("/api/leads/{lead_id}")
+async def update_lead(lead_id: int, lead_data: LeadCreate, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    for key, value in lead_data.dict().items():
+        setattr(lead, key, value)
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+@app.delete("/api/leads/{lead_id}")
+async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    db.delete(lead)
+    db.commit()
+    return {"status": "success"}
+
+# API Endpoint para respaldo del sistema
+@app.post("/api/settings/backup")
+async def create_backup():
+    # Aquí iría la lógica para crear el respaldo
+    return {"status": "success", "message": "Respaldo iniciado correctamente"}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
