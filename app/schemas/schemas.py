@@ -31,7 +31,7 @@ class PatientCreate(BaseModel):
 
 class AppointmentCreate(BaseModel):
     patient_id: int
-    date: str
+    date: str = Field(..., description="Fecha y hora de la cita en formato YYYY-MM-DDTHH:mm")
     service_type: str
     status: str = "scheduled"
     notes: Optional[str] = None
@@ -39,13 +39,10 @@ class AppointmentCreate(BaseModel):
     @field_validator('date')
     def validate_date(cls, v):
         try:
-            date = datetime.strptime(v, "%Y-%m-%dT%H:%M")
-            if date < datetime.now():
-                raise ValueError("La fecha no puede ser en el pasado")
-            if date > datetime.now() + datetime.timedelta(days=365):
-                raise ValueError("La fecha no puede ser más de un año en el futuro")
+            # Validar el formato de la fecha
+            datetime.strptime(v, '%Y-%m-%dT%H:%M')
             return v
-        except ValueError as e:
+        except ValueError:
             raise ValueError("Formato de fecha inválido. Use YYYY-MM-DDTHH:MM")
 
     @field_validator('service_type')
@@ -61,13 +58,6 @@ class AppointmentCreate(BaseModel):
         if v.lower() not in valid_statuses:
             raise ValueError(f"Estado inválido. Use uno de: {', '.join(valid_statuses)}")
         return v.lower()
-
-    @field_validator('notes')
-    def validate_notes(cls, v):
-        if v is not None:
-            if len(v) > 500:
-                raise ValueError("Las notas no pueden exceder los 500 caracteres")
-        return v
 
 class LeadCreate(BaseModel):
     name: str
