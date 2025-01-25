@@ -3,14 +3,19 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Usar la URL de conexión de Neon
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_mTJhLZ5FtRA3@ep-little-term-a8x9ojn0-pooler.eastus2.azure.neon.tech/neondb?sslmode=require")
+# Obtener la URL de la base de datos de las variables de entorno
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Crear el engine de SQLAlchemy
 engine = create_engine(DATABASE_URL)
+
+# Crear la sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Crear la base declarativa
 Base = declarative_base()
 
+# Función para obtener la base de datos
 def get_db():
     db = SessionLocal()
     try:
