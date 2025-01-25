@@ -74,24 +74,34 @@
             <h3 class="text-lg font-medium text-gray-900 mb-4 text-center">Nuevo Paciente</h3>
             <form id="newPatientForm" class="space-y-4">
                 <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="patient-name">
                         Nombre Completo
                     </label>
-                    <input type="text" name="name" required
+                    <input type="text" 
+                           id="patient-name"
+                           name="name" 
+                           autocomplete="name"
+                           required
                            class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
                 <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="patient-email">
                         Email
                     </label>
-                    <input type="email" name="email"
+                    <input type="email" 
+                           id="patient-email"
+                           name="email"
+                           autocomplete="email"
                            class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
                 <div>
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="patient-phone">
                         Teléfono
                     </label>
-                    <input type="tel" name="phone"
+                    <input type="tel" 
+                           id="patient-phone"
+                           name="phone"
+                           autocomplete="tel"
                            class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
                 <div class="flex items-center justify-between mt-6">
