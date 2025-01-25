@@ -1,33 +1,38 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
+from fastapi import status  # Importación duplicada eliminada
 from starlette.middleware.base import BaseHTTPMiddleware
-from datetime import datetime, timedelta
-from pydantic import ValidationError
+
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from datetime import timezone
-from typing import List
-from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+
+from pydantic import ValidationError
+
+# Configuración y utilidades
 import os
 import time
-from fastapi import FastAPI, Request, Depends, HTTPException, status
+from config.settings import settings
 
-from sqlalchemy import func
+# Base de datos y conexión
 from app.utils.db import get_db, engine, Base, verify_db_connection
+
+# Modelos
 from app.models.models import Patient, Appointment, Lead
+
+# Esquemas
 from app.schemas.schemas import (
     PatientCreate, PatientResponse,
     AppointmentCreate, AppointmentResponse,
     LeadCreate, LeadResponse,
     AppointmentUpdate
 )
-from config.settings import settings
-from fastapi import status
-from sqlalchemy.orm import joinedload 
+
 
 # Middleware de Debug - COLOCAR AQUÍ
 class DebugMiddleware(BaseHTTPMiddleware):
@@ -354,10 +359,19 @@ async def create_appointment(
                 detail=f"No se encontró el paciente con ID {appointment.patient_id}"
             )
 
+        # Parsear la fecha correctamente
+        try:
+            appointment_date = datetime.fromisoformat(appointment.date.replace('Z', '+00:00'))
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Formato de fecha inválido: {str(e)}"
+            )
+
         # Crear la cita
         new_appointment = Appointment(
             patient_id=appointment.patient_id,
-            date=datetime.fromisoformat(appointment.date.replace('Z', '+00:00')),
+            date=appointment_date,
             service_type=appointment.service_type,
             status=appointment.status,
             notes=appointment.notes,
