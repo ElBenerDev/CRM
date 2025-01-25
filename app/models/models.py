@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.utils.db import Base
 from app.utils.db import engine
-from datetime import datetime
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,8 +23,8 @@ class Appointment(Base):
     date = Column(DateTime, nullable=False)
     service_type = Column(String, nullable=False)
     status = Column(String, default="scheduled")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     patient = relationship("Patient", back_populates="appointments")
 
