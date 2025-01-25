@@ -17,40 +17,28 @@ from app.schemas.schemas import (
     LeadCreate, LeadResponse,
     AppointmentUpdate
 )
-from config.settings import settings
-from app.core.config import settings
-from app.middleware.logging import log_request_middleware
-from app.middleware.rate_limit import RateLimiter
-from app.middleware.error_handler import error_handler_middleware
+from config.settings import settings  # Solo importar desde config.settings
 
+# Crear una única instancia de FastAPI
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    title=settings.APP_NAME,
+    description="Sistema CRM para gestión dental",
+    version=settings.APP_VERSION,
 )
 
+# Un solo middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:8000",
+        "https://crm-oarr.onrender.com",
+        "*"  # Solo para desarrollo, remover en producción
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.add_middleware(RateLimiter, requests_per_minute=60)
-
-# Agregar logging
-app.middleware("http")(log_request_middleware)
-
-# Agregar manejador de errores
-app.middleware("http")(error_handler_middleware)
-
-
-origins = [
-    "http://localhost",
-    "http://localhost:8000",
-    "https://crm-oarr.onrender.com",
-    # Agrega aquí otros orígenes permitidos
-]
 
 
 # Configuración de rutas

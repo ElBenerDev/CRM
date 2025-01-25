@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
-from datetime import datetime
+from typing import List
 
 class Settings(BaseSettings):
     # Información de la aplicación
@@ -14,6 +13,13 @@ class Settings(BaseSettings):
     DATABASE_POOL_SIZE: int = 5
     DATABASE_MAX_OVERFLOW: int = 10
     DATABASE_POOL_TIMEOUT: int = 30
+
+    # Configuración CORS
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost",
+        "http://localhost:8000",
+        "https://crm-oarr.onrender.com"
+    ]
 
     # Usuario por defecto
     DEFAULT_USER_NAME: str = "ElBenerDev"
