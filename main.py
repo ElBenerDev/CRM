@@ -19,6 +19,14 @@ from app.schemas.schemas import (
 )
 from config.settings import settings
 
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "https://crm-oarr.onrender.com",
+    # Agrega aquí otros orígenes permitidos
+]
+
+
 # Configuración de rutas
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
@@ -467,6 +475,16 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "timestamp": datetime.utcnow().isoformat()
         }
     )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
