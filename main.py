@@ -141,29 +141,78 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.filters["format_date"] = format_date
 
 # Rutas de páginas con soporte mejorado para HEAD
-# Rutas de páginas con soporte mejorado para HEAD y mejor manejo de errores
 @app.get("/", response_class=HTMLResponse)
-@app.head("/")  # Agregar soporte explícito para HEAD
+@app.head("/")
 async def home(request: Request, db: Session = Depends(get_db)):
     """Ruta principal que muestra el dashboard"""
-    if request.method == "HEAD":
-        return HTMLResponse(content="")
-    
     try:
-        # ... resto del código del home ...
-        return templates.TemplateResponse("dashboard.html", {...})
+        if request.method == "HEAD":
+            return HTMLResponse(content="")
+
+        # Estadísticas
+        total_patients = db.query(func.count(Patient.id)).scalar() or 0
+        
+        # Citas de hoy
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        appointments_today = db.query(func.count(Appointment.id))\
+            .filter(Appointment.date.between(today_start, today_end))\
+            .scalar() or 0
+        
+        # Citas pendientes y completadas
+        pending_appointments = db.query(func.count(Appointment.id))\
+            .filter(Appointment.status == 'scheduled')\
+            .scalar() or 0
+        
+        completed_appointments = db.query(func.count(Appointment.id))\
+            .filter(Appointment.status == 'completed')\
+            .scalar() or 0
+
+        # Próximas citas
+        upcoming_appointments = db.query(Appointment)\
+            .filter(Appointment.date >= datetime.utcnow())\
+            .filter(Appointment.status == 'scheduled')\
+            .order_by(Appointment.date)\
+            .limit(5)\
+            .all()
+
+        # Últimos pacientes
+        recent_patients = db.query(Patient)\
+            .order_by(Patient.created_at.desc())\
+            .limit(5)\
+            .all()
+
+        # Leads activos
+        active_leads = db.query(func.count(Lead.id))\
+            .filter(Lead.status.in_(['nuevo', 'contactado']))\
+            .scalar() or 0
+
+        context = {
+            "request": request,  # Asegurarse de incluir siempre el request
+            "user": {"name": "ElBenerDev", "role": "Admin"},
+            "active": "dashboard",
+            "stats": {
+                "total_patients": total_patients,
+                "appointments_today": appointments_today,
+                "pending_appointments": pending_appointments,
+                "completed_appointments": completed_appointments,
+                "active_leads": active_leads
+            },
+            "upcoming_appointments": upcoming_appointments,
+            "recent_patients": recent_patients
+        }
+
+        return templates.TemplateResponse("dashboard.html", context)
+
     except Exception as e:
         print(f"❌ Error en home: {str(e)}")
-        return templates.TemplateResponse(
-            "error.html",
-            {
-                "request": request,
-                "error_message": str(e),
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "dashboard"
-            },
-            status_code=500
-        )
+        error_context = {
+            "request": request,  # Asegurarse de incluir el request en el contexto de error
+            "error_message": f"Error al cargar el dashboard: {str(e)}",
+            "user": {"name": "ElBenerDev", "role": "Admin"},
+            "active": "dashboard"
+        }
+        return templates.TemplateResponse("error.html", error_context, status_code=500)
 
 @app.get("/patients", response_class=HTMLResponse)
 @app.head("/patients")
