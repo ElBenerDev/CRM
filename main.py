@@ -20,6 +20,7 @@ from app.schemas.schemas import (
 )
 from config.settings import settings
 from fastapi import status
+from sqlalchemy.orm import joinedload 
 
 # Middleware de Debug - COLOCAR AQUÍ
 class DebugMiddleware(BaseHTTPMiddleware):
@@ -149,6 +150,22 @@ async def home(request: Request, db: Session = Depends(get_db)):
         if request.method == "HEAD":
             return HTMLResponse(content="")
 
+        # Definir los diccionarios de nombres
+        service_names = {
+            'cleaning': 'Limpieza',
+            'consultation': 'Consulta',
+            'treatment': 'Tratamiento',
+            'emergency': 'Emergencia',
+            # Agrega más servicios según necesites
+        }
+
+        status_names = {
+            'scheduled': 'Programada',
+            'completed': 'Completada',
+            'cancelled': 'Cancelada',
+            # Agrega más estados según necesites
+        }
+
         # Estadísticas
         total_patients = db.query(func.count(Patient.id)).scalar() or 0
         
@@ -168,51 +185,51 @@ async def home(request: Request, db: Session = Depends(get_db)):
             .filter(Appointment.status == 'completed')\
             .scalar() or 0
 
-        # Próximas citas
+        # Próximas citas con información del paciente
         upcoming_appointments = db.query(Appointment)\
+            .join(Patient)\
             .filter(Appointment.date >= datetime.utcnow())\
             .filter(Appointment.status == 'scheduled')\
             .order_by(Appointment.date)\
             .limit(5)\
             .all()
 
-        # Últimos pacientes
+        # Últimos pacientes con sus citas
         recent_patients = db.query(Patient)\
+            .options(joinedload(Patient.appointments))\
             .order_by(Patient.created_at.desc())\
             .limit(5)\
             .all()
 
-        # Leads activos
-        active_leads = db.query(func.count(Lead.id))\
-            .filter(Lead.status.in_(['nuevo', 'contactado']))\
-            .scalar() or 0
-
-        context = {
-            "request": request,  # Asegurarse de incluir siempre el request
-            "user": {"name": "ElBenerDev", "role": "Admin"},
-            "active": "dashboard",
-            "stats": {
-                "total_patients": total_patients,
-                "appointments_today": appointments_today,
-                "pending_appointments": pending_appointments,
-                "completed_appointments": completed_appointments,
-                "active_leads": active_leads
-            },
-            "upcoming_appointments": upcoming_appointments,
-            "recent_patients": recent_patients
-        }
-
-        return templates.TemplateResponse("dashboard.html", context)
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "stats": {
+                    "total_patients": total_patients,
+                    "appointments_today": appointments_today,
+                    "pending_appointments": pending_appointments,
+                    "completed_appointments": completed_appointments,
+                },
+                "upcoming_appointments": upcoming_appointments,
+                "recent_patients": recent_patients,
+                "service_names": service_names,
+                "status_names": status_names
+            }
+        )
 
     except Exception as e:
         print(f"❌ Error en home: {str(e)}")
-        error_context = {
-            "request": request,  # Asegurarse de incluir el request en el contexto de error
-            "error_message": f"Error al cargar el dashboard: {str(e)}",
-            "user": {"name": "ElBenerDev", "role": "Admin"},
-            "active": "dashboard"
-        }
-        return templates.TemplateResponse("error.html", error_context, status_code=500)
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar el dashboard: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+            },
+            status_code=500
+        )
 
 @app.get("/patients", response_class=HTMLResponse)
 @app.head("/patients")
