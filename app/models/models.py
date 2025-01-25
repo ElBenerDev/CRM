@@ -35,9 +35,12 @@ class Lead(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-    phone = Column(String, nullable=False)
-    status = Column(String, nullable=False, default="nuevo")
-    notes = Column(Text, nullable=True)
+    email = Column(String, unique=True, index=True)
+    phone = Column(String)
+    status = Column(String, default="nuevo")  # nuevo, contactado, convertido, perdido
+    source = Column(String)  # referido, web, redes sociales, etc.
+    interest = Column(String)  # tipo de servicio de interés
+    priority = Column(String, default="media")  # alta, media, baja
+    notes = Column(Text)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

@@ -64,26 +64,10 @@ class LeadCreate(BaseModel):
     email: str
     phone: str
     status: str = "nuevo"
+    source: Optional[str] = None
+    interest: Optional[str] = None
+    priority: str = "media"
     notes: Optional[str] = None
-
-    @field_validator('name')
-    def validate_name(cls, v):
-        if not v or len(v.strip()) < 2:
-            raise ValueError('El nombre debe tener al menos 2 caracteres')
-        return v.strip()
-
-    @field_validator('email')
-    def validate_email(cls, v):
-        if not '@' in v:
-            raise ValueError('Email inválido')
-        return v.lower()
-
-    @field_validator('phone')
-    def validate_phone(cls, v):
-        cleaned = ''.join(filter(str.isdigit, v))
-        if len(cleaned) < 10:
-            raise ValueError('El número de teléfono debe tener al menos 10 dígitos')
-        return v
 
     @field_validator('status')
     def validate_status(cls, v):
@@ -92,11 +76,12 @@ class LeadCreate(BaseModel):
             raise ValueError(f"Estado inválido. Use uno de: {', '.join(valid_statuses)}")
         return v.lower()
 
-    @field_validator('notes')
-    def validate_notes(cls, v):
-        if v is not None and len(v) > 500:
-            raise ValueError("Las notas no pueden exceder los 500 caracteres")
-        return v
+    @field_validator('priority')
+    def validate_priority(cls, v):
+        valid_priorities = ["alta", "media", "baja"]
+        if v.lower() not in valid_priorities:
+            raise ValueError(f"Prioridad inválida. Use uno de: {', '.join(valid_priorities)}")
+        return v.lower()
 
 class AppointmentUpdate(BaseModel):
     status: str
@@ -146,9 +131,12 @@ class LeadResponse(BaseModel):
     email: str
     phone: str
     status: str
-    notes: Optional[str]
-    created_at: datetime
-    updated_at: datetime
+    source: Optional[str] = None
+    interest: Optional[str] = None
+    priority: str
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
