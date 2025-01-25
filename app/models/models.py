@@ -12,7 +12,9 @@ class Patient(Base):
     name = Column(String, nullable=False)
     email = Column(String)
     phone = Column(String)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)  # Cambiar esto
+    created_at = Column(DateTime(timezone=True), 
+                       server_default=func.now(), 
+                       nullable=False)
     appointments = relationship("Appointment", back_populates="patient")
 
 class Appointment(Base):

@@ -107,15 +107,8 @@ except Exception as e:
         for f in files:
             print(f"    📄 {f}")
 
-# Función para formatear fechas
-def format_date(date):
-    if date is None:
-        return datetime.utcnow().strftime('%d/%m/%Y')
-    return date.strftime('%d/%m/%Y')
-
-# Configurar templates y filtros
+# Configurar templates
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
-templates.env.filters["format_date"] = format_date
 
 # Rutas de páginas
 @app.get("/")
@@ -125,7 +118,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
     total_patients = db.query(func.count(Patient.id)).scalar() or 0
     
     # Citas de hoy
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
     appointments_today = db.query(func.count(Appointment.id))\
         .filter(Appointment.date.between(today_start, today_end))\
@@ -142,7 +135,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
 
     # Próximas citas
     upcoming_appointments = db.query(Appointment)\
-        .filter(Appointment.date >= datetime.utcnow())\
+        .filter(Appointment.date >= datetime.now())\
         .filter(Appointment.status == 'scheduled')\
         .order_by(Appointment.date)\
         .limit(5)\
@@ -180,63 +173,50 @@ async def home(request: Request, db: Session = Depends(get_db)):
 @app.get("/patients")
 async def patients_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de pacientes"""
-    try:
-        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-        return templates.TemplateResponse(
-            "patients.html",
-            {
-                "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "patients",
-                "patients": patients,
-                "datetime": datetime
-            }
-        )
-    except Exception as e:
-        print(f"❌ Error en patients_page: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al cargar la página de pacientes")
+    patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+    return templates.TemplateResponse(
+        "patients.html",
+        {
+            "request": request,
+            "user": {"name": "ElBenerDev", "role": "Admin"},
+            "active": "patients",
+            "patients": patients
+        }
+    )
 
 @app.get("/appointments")
 async def appointments_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de citas"""
-    try:
-        appointments = db.query(Appointment)\
-            .order_by(Appointment.date.desc())\
-            .all()
-        patients = db.query(Patient).order_by(Patient.name).all()
+    appointments = db.query(Appointment)\
+        .order_by(Appointment.date.desc())\
+        .all()
+    patients = db.query(Patient).order_by(Patient.name).all()
 
-        return templates.TemplateResponse(
-            "appointments.html",
-            {
-                "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "appointments",
-                "appointments": appointments,
-                "patients": patients,
-                "datetime": datetime
-            }
-        )
-    except Exception as e:
-        print(f"❌ Error en appointments_page: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al cargar la página de citas")
+    return templates.TemplateResponse(
+        "appointments.html",
+        {
+            "request": request,
+            "user": {"name": "ElBenerDev", "role": "Admin"},
+            "active": "appointments",
+            "appointments": appointments,
+            "patients": patients,
+            "datetime": datetime
+        }
+    )
 
 @app.get("/leads")
 async def leads_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de leads"""
-    try:
-        leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
-        return templates.TemplateResponse(
-            "leads.html",
-            {
-                "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "leads",
-                "leads": leads
-            }
-        )
-    except Exception as e:
-        print(f"❌ Error en leads_page: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al cargar la página de leads")
+    leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
+    return templates.TemplateResponse(
+        "leads.html",
+        {
+            "request": request,
+            "user": {"name": "ElBenerDev", "role": "Admin"},
+            "active": "leads",
+            "leads": leads
+        }
+    )
 
 @app.get("/settings")
 async def settings_page(request: Request):
@@ -253,17 +233,11 @@ async def settings_page(request: Request):
 # API Endpoints para Pacientes
 @app.post("/api/patients/")
 async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
-    try:
-        new_patient = Patient(**patient.dict())
-        new_patient.created_at = datetime.utcnow()  # Asegurar que created_at tenga un valor
-        db.add(new_patient)
-        db.commit()
-        db.refresh(new_patient)
-        return new_patient
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error al crear paciente: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al crear el paciente")
+    new_patient = Patient(**patient.dict())
+    db.add(new_patient)
+    db.commit()
+    db.refresh(new_patient)
+    return new_patient
 
 @app.get("/api/patients/{patient_id}")
 async def get_patient(patient_id: int, db: Session = Depends(get_db)):
@@ -274,17 +248,12 @@ async def get_patient(patient_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/api/patients/{patient_id}")
 async def delete_patient(patient_id: int, db: Session = Depends(get_db)):
-    try:
-        patient = db.query(Patient).filter(Patient.id == patient_id).first()
-        if not patient:
-            raise HTTPException(status_code=404, detail="Paciente no encontrado")
-        db.delete(patient)
-        db.commit()
-        return {"status": "success", "message": "Paciente eliminado correctamente"}
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error al eliminar paciente: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al eliminar el paciente")
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
+    db.delete(patient)
+    db.commit()
+    return {"status": "success"}
 
 # API Endpoints para Citas
 @app.post("/api/appointments/")
@@ -296,19 +265,14 @@ async def create_appointment(appointment: AppointmentCreate, db: Session = Depen
             raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
         # Convertir la fecha
-        try:
-            appointment_date = datetime.strptime(appointment.date, "%Y-%m-%dT%H:%M")
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+        appointment_date = datetime.strptime(appointment.date, "%Y-%m-%dT%H:%M")
 
         # Crear la cita
         new_appointment = Appointment(
             patient_id=appointment.patient_id,
             date=appointment_date,
             service_type=appointment.service_type,
-            status="scheduled",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            status="scheduled"
         )
         
         db.add(new_appointment)
@@ -322,56 +286,32 @@ async def create_appointment(appointment: AppointmentCreate, db: Session = Depen
                 "patient_id": new_appointment.patient_id,
                 "date": new_appointment.date.isoformat(),
                 "service_type": new_appointment.service_type,
-                "status": new_appointment.status,
-                "created_at": new_appointment.created_at.isoformat(),
-                "updated_at": new_appointment.updated_at.isoformat()
+                "status": new_appointment.status
             }
         )
-    except HTTPException as he:
-        raise he
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
     except Exception as e:
         db.rollback()
-        print(f"❌ Error al crear cita: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al crear la cita")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/api/appointments/{appointment_id}/cancel")
 async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
-    try:
-        appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-        if not appointment:
-            raise HTTPException(status_code=404, detail="Cita no encontrada")
-        appointment.status = "cancelled"
-        appointment.updated_at = datetime.utcnow()
-        db.commit()
-        return {
-            "status": "success",
-            "message": "Cita cancelada correctamente",
-            "appointment": {
-                "id": appointment.id,
-                "status": appointment.status,
-                "updated_at": appointment.updated_at.isoformat()
-            }
-        }
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error al cancelar cita: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al cancelar la cita")
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    appointment.status = "cancelled"
+    db.commit()
+    return {"status": "success"}
 
 # API Endpoints para Leads
 @app.post("/api/leads/")
 async def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
-    try:
-        new_lead = Lead(**lead.dict())
-        new_lead.created_at = datetime.utcnow()
-        new_lead.updated_at = datetime.utcnow()
-        db.add(new_lead)
-        db.commit()
-        db.refresh(new_lead)
-        return new_lead
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error al crear lead: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al crear el lead")
+    new_lead = Lead(**lead.dict())
+    db.add(new_lead)
+    db.commit()
+    db.refresh(new_lead)
+    return new_lead
 
 @app.get("/api/leads/{lead_id}")
 async def get_lead(lead_id: int, db: Session = Depends(get_db)):
@@ -382,51 +322,29 @@ async def get_lead(lead_id: int, db: Session = Depends(get_db)):
 
 @app.put("/api/leads/{lead_id}")
 async def update_lead(lead_id: int, lead_data: LeadCreate, db: Session = Depends(get_db)):
-    try:
-        lead = db.query(Lead).filter(Lead.id == lead_id).first()
-        if not lead:
-            raise HTTPException(status_code=404, detail="Lead no encontrado")
-        
-        for key, value in lead_data.dict().items():
-            setattr(lead, key, value)
-        
-        lead.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(lead)
-        return lead
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error al actualizar lead: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al actualizar el lead")
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    for key, value in lead_data.dict().items():
+        setattr(lead, key, value)
+    db.commit()
+    db.refresh(lead)
+    return lead
 
 @app.delete("/api/leads/{lead_id}")
 async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    try:
-        lead = db.query(Lead).filter(Lead.id == lead_id).first()
-        if not lead:
-            raise HTTPException(status_code=404, detail="Lead no encontrado")
-        db.delete(lead)
-        db.commit()
-        return {"status": "success", "message": "Lead eliminado correctamente"}
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error al eliminar lead: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al eliminar el lead")
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado")
+    db.delete(lead)
+    db.commit()
+    return {"status": "success"}
 
 # API Endpoint para respaldo del sistema
 @app.post("/api/settings/backup")
 async def create_backup():
-    try:
-        # Aquí iría la lógica para crear el respaldo
-        current_time = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        return {
-            "status": "success",
-            "message": "Respaldo iniciado correctamente",
-            "backup_time": current_time
-        }
-    except Exception as e:
-        print(f"❌ Error al crear respaldo: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al crear el respaldo")
+    # Aquí iría la lógica para crear el respaldo
+    return {"status": "success", "message": "Respaldo iniciado correctamente"}
 
 # Manejador de errores 404
 @app.exception_handler(404)
@@ -445,6 +363,7 @@ async def not_found_error(request: Request, exc: HTTPException):
         status_code=404
     )
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print(f"❌ Error Global: {str(exc)}")
@@ -452,8 +371,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "detail": "Error interno del servidor",
-            "error": str(exc),
-            "timestamp": datetime.utcnow().isoformat()
+            "error": str(exc)
         }
     )
 
@@ -462,11 +380,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     print(f"❌ HTTP Error: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        content={"detail": exc.detail}
     )
+
+@app.template_filter()
+def format_date(date):
+    if date is None:
+        return datetime.now().strftime('%d/%m/%Y')
+    return date.strftime('%d/%m/%Y')
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.filters["format_date"] = format_date
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
