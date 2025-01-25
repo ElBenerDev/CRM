@@ -44,7 +44,62 @@
     </style>
 </head>
 <body class="bg-gray-100">
-    <!-- El resto del código se mantiene igual hasta el script final -->
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <div class="flex items-center py-4">
+                        <span class="font-semibold text-gray-500 text-lg">Dental CRM</span>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-1">
+                        <a href="/" class="py-4 px-2 {% if active == 'dashboard' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                            <i class="fas fa-chart-line mr-2"></i>Dashboard
+                        </a>
+                        <a href="/patients" class="py-4 px-2 {% if active == 'patients' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                            <i class="fas fa-user-injured mr-2"></i>Pacientes
+                        </a>
+                        <a href="/appointments" class="py-4 px-2 {% if active == 'appointments' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                            <i class="fas fa-calendar-alt mr-2"></i>Citas
+                        </a>
+                        <a href="/leads" class="py-4 px-2 {% if active == 'leads' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                            <i class="fas fa-user-plus mr-2"></i>Leads
+                        </a>
+                        <a href="/settings" class="py-4 px-2 {% if active == 'settings' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                            <i class="fas fa-cog mr-2"></i>Configuración
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-gray-500">
+                        <i class="fas fa-user mr-2"></i>{{ user.name }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4">
+            <h1 class="text-3xl font-bold text-gray-900">
+                {% block header %}{% endblock %}
+            </h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Loading Indicator -->
+    <div id="loader" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
     <!-- Scripts -->
     <script src="/static/js/main.js"></script>
@@ -72,7 +127,10 @@
             notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white notification
                 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
             notification.textContent = message;
-            document.body.appendChild(notification);
+            
+            // Usar el contenedor de toast en lugar del body
+            const container = document.getElementById('toast-container');
+            container.appendChild(notification);
 
             // Forzar un reflow para que la animación funcione
             notification.offsetHeight;
@@ -91,7 +149,9 @@
         const loader = document.getElementById('loader');
 
         function updateLoader() {
-            loader.style.display = activeRequests > 0 ? 'flex' : 'none';
+            if (loader) {
+                loader.style.display = activeRequests > 0 ? 'flex' : 'none';
+            }
         }
 
         // Interceptar todas las peticiones fetch
@@ -131,6 +191,14 @@
 
         // Inicializar tooltips y otros componentes
         document.addEventListener('DOMContentLoaded', function() {
+            // Verificar que los elementos necesarios existen
+            if (!document.getElementById('loader')) {
+                console.error('Elemento loader no encontrado');
+            }
+            if (!document.getElementById('toast-container')) {
+                console.error('Elemento toast-container no encontrado');
+            }
+            
             // Aquí puedes agregar inicializaciones adicionales
         });
     </script>
