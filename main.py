@@ -14,6 +14,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import os
 import time
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 
 from sqlalchemy import func
 from app.utils.db import get_db, engine, Base, verify_db_connection
@@ -335,6 +336,91 @@ async def appointments_page(request: Request, db: Session = Depends(get_db)):
                 "active": "appointments"
             },
             status_code=500
+        )
+    
+@app.post("/api/appointments/", response_model=AppointmentResponse)
+async def create_appointment(
+    appointment: AppointmentCreate,
+    db: Session = Depends(get_db)
+):
+    try:
+        print(f"📝 Recibiendo datos de cita: {appointment.dict()}")
+        
+        # Verificar que el paciente existe
+        patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No se encontró el paciente con ID {appointment.patient_id}"
+            )
+
+        # Crear la cita
+        new_appointment = Appointment(
+            patient_id=appointment.patient_id,
+            date=datetime.fromisoformat(appointment.date.replace('Z', '+00:00')),
+            service_type=appointment.service_type,
+            status=appointment.status,
+            notes=appointment.notes,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        
+        print(f"📅 Creando cita para paciente {patient.name}")
+        db.add(new_appointment)
+        db.commit()
+        db.refresh(new_appointment)
+        
+        print(f"✅ Cita creada exitosamente para {patient.name}")
+        return new_appointment
+        
+    except ValueError as e:
+        db.rollback()
+        print(f"❌ Error de validación: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except HTTPException as e:
+        db.rollback()
+        print(f"❌ Error HTTP: {str(e.detail)}")
+        raise e
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error al crear cita: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@app.post("/api/leads/", response_model=LeadResponse)
+async def create_lead(
+    lead: LeadCreate,
+    db: Session = Depends(get_db)
+):
+    try:
+        new_lead = Lead(
+            name=lead.name,
+            email=lead.email,
+            phone=lead.phone,
+            status=lead.status,
+            notes=lead.notes,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        
+        db.add(new_lead)
+        db.commit()
+        db.refresh(new_lead)
+        
+        print(f"✅ Lead creado: {new_lead.name}")
+        return new_lead
+        
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error al crear lead: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
 
 @app.get("/leads", response_class=HTMLResponse)
