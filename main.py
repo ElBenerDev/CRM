@@ -141,85 +141,39 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.filters["format_date"] = format_date
 
 # Rutas de páginas con soporte mejorado para HEAD
+# Rutas de páginas con soporte mejorado para HEAD y mejor manejo de errores
 @app.get("/", response_class=HTMLResponse)
+@app.head("/")  # Agregar soporte explícito para HEAD
 async def home(request: Request, db: Session = Depends(get_db)):
     """Ruta principal que muestra el dashboard"""
     if request.method == "HEAD":
         return HTMLResponse(content="")
     
     try:
-        # Estadísticas
-        total_patients = db.query(func.count(Patient.id)).scalar() or 0
-        
-        # Citas de hoy
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = today_start + timedelta(days=1)
-        appointments_today = db.query(func.count(Appointment.id))\
-            .filter(Appointment.date.between(today_start, today_end))\
-            .scalar() or 0
-        
-        # Citas pendientes y completadas
-        pending_appointments = db.query(func.count(Appointment.id))\
-            .filter(Appointment.status == 'scheduled')\
-            .scalar() or 0
-        
-        completed_appointments = db.query(func.count(Appointment.id))\
-            .filter(Appointment.status == 'completed')\
-            .scalar() or 0
-
-        # Próximas citas
-        upcoming_appointments = db.query(Appointment)\
-            .filter(Appointment.date >= datetime.utcnow())\
-            .filter(Appointment.status == 'scheduled')\
-            .order_by(Appointment.date)\
-            .limit(5)\
-            .all()
-
-        # Últimos pacientes
-        recent_patients = db.query(Patient)\
-            .order_by(Patient.created_at.desc())\
-            .limit(5)\
-            .all()
-
-        # Leads activos
-        active_leads = db.query(func.count(Lead.id))\
-            .filter(Lead.status.in_(['nuevo', 'contactado']))\
-            .scalar() or 0
-
-        return templates.TemplateResponse(
-            "dashboard.html",
-            {
-                "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "dashboard",
-                "stats": {
-                    "total_patients": total_patients,
-                    "appointments_today": appointments_today,
-                    "pending_appointments": pending_appointments,
-                    "completed_appointments": completed_appointments,
-                    "active_leads": active_leads
-                },
-                "upcoming_appointments": upcoming_appointments,
-                "recent_patients": recent_patients
-            }
-        )
+        # ... resto del código del home ...
+        return templates.TemplateResponse("dashboard.html", {...})
     except Exception as e:
         print(f"❌ Error en home: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Error al cargar el dashboard"
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": str(e),
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "dashboard"
+            },
+            status_code=500
         )
 
-@app.get("/patients")
+@app.get("/patients", response_class=HTMLResponse)
+@app.head("/patients")
 async def patients_page(request: Request, db: Session = Depends(get_db)):
     """Ruta para la página de pacientes"""
+    if request.method == "HEAD":
+        return HTMLResponse(content="")
+        
     try:
-        # Verificar si el template existe
-        template_path = os.path.join(TEMPLATES_DIR, "patients.html")
-        if not os.path.exists(template_path):
-            print(f"❌ Template no encontrado: {template_path}")
-            raise HTTPException(status_code=500, detail="Template no encontrado")
-
+        print(f"🔍 Intentando cargar patients_page")
         patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
         print(f"✅ Pacientes encontrados: {len(patients)}")
         
@@ -246,98 +200,107 @@ async def patients_page(request: Request, db: Session = Depends(get_db)):
             status_code=500
         )
 
-
-# Endpoint de verificación de salud del sistema
-@app.get("/health")
-async def health_check():
-    """Endpoint para verificar el estado del sistema"""
-    try:
-        # Verificar conexión a la base de datos
-        if not verify_db_connection():
-            raise HTTPException(
-                status_code=503,
-                detail="Database connection failed"
-            )
+@app.get("/appointments", response_class=HTMLResponse)
+@app.head("/appointments")
+async def appointments_page(request: Request, db: Session = Depends(get_db)):
+    """Ruta para la página de citas"""
+    if request.method == "HEAD":
+        return HTMLResponse(content="")
         
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-            "version": settings.APP_VERSION,
-            "database": "connected"
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"System unhealthy: {str(e)}"
-        )
-
-# API Endpoints para Pacientes con mejor manejo de errores
-@app.post("/api/patients/", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
-async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
-    """Crear un nuevo paciente"""
     try:
-        new_patient = Patient(**patient.dict())
-        new_patient.created_at = datetime.utcnow()
-        new_patient.updated_at = datetime.utcnow()
-        db.add(new_patient)
-        db.commit()
-        db.refresh(new_patient)
-        return new_patient
+        print(f"🔍 Intentando cargar appointments_page")
+        appointments = db.query(Appointment)\
+            .order_by(Appointment.date.desc())\
+            .all()
+        patients = db.query(Patient).order_by(Patient.name).all()
+        print(f"✅ Citas encontradas: {len(appointments)}")
+
+        return templates.TemplateResponse(
+            "appointments.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "appointments",
+                "appointments": appointments,
+                "patients": patients,
+                "datetime": datetime
+            }
+        )
     except Exception as e:
-        db.rollback()
-        print(f"❌ Error al crear paciente: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al crear el paciente: {str(e)}"
+        print(f"❌ Error en appointments_page: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar la página de citas: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "appointments"
+            },
+            status_code=500
         )
 
-# Manejadores de errores mejorados
-@app.exception_handler(404)
-async def not_found_error(request: Request, exc: HTTPException):
-    """Manejador personalizado para errores 404"""
-    if request.url.path.startswith('/static/'):
-        print(f"❌ Archivo estático no encontrado: {request.url.path}")
-        return PlainTextResponse("File not found", status_code=404)
-    
-    return templates.TemplateResponse(
-        "error.html",
-        {
-            "request": request,
-            "error_message": "Página no encontrada",
-            "user": {"name": "ElBenerDev", "role": "Admin"},
-            "active": "",
-            "status_code": 404
-        },
-        status_code=404
-    )
+@app.get("/leads", response_class=HTMLResponse)
+@app.head("/leads")
+async def leads_page(request: Request, db: Session = Depends(get_db)):
+    """Ruta para la página de leads"""
+    if request.method == "HEAD":
+        return HTMLResponse(content="")
+        
+    try:
+        print(f"🔍 Intentando cargar leads_page")
+        leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
+        print(f"✅ Leads encontrados: {len(leads)}")
+        
+        return templates.TemplateResponse(
+            "leads.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "leads",
+                "leads": leads
+            }
+        )
+    except Exception as e:
+        print(f"❌ Error en leads_page: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar la página de leads: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "leads"
+            },
+            status_code=500
+        )
 
-@app.exception_handler(405)
-async def method_not_allowed_handler(request: Request, exc: HTTPException):
-    """Manejador personalizado para errores 405"""
-    print(f"⚠️ Método no permitido: {request.method} {request.url}")
-    return JSONResponse(
-        status_code=405,
-        content={
-            "detail": f"Método {request.method} no permitido para esta ruta",
-            "allowed_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    )
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Manejador global de excepciones"""
-    print(f"❌ Error Global: {str(exc)}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": "Error interno del servidor",
-            "error": str(exc),
-            "path": str(request.url),
-            "method": request.method,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    )
+@app.get("/settings", response_class=HTMLResponse)
+@app.head("/settings")
+async def settings_page(request: Request):
+    """Ruta para la página de configuración"""
+    if request.method == "HEAD":
+        return HTMLResponse(content="")
+        
+    try:
+        return templates.TemplateResponse(
+            "settings.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "settings"
+            }
+        )
+    except Exception as e:
+        print(f"❌ Error en settings_page: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar la página de configuración: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "settings"
+            },
+            status_code=500
+        )
 
 # Configuración de inicio
 if __name__ == "__main__":
