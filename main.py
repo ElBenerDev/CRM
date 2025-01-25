@@ -251,31 +251,7 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_patient)
         
-        return new_patient
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-    
-@app.post("/api/patients/", response_model=PatientResponse)
-async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
-    try:
-        # Crear nuevo paciente sin especificar ID
-        new_patient = Patient(
-            name=patient.name,
-            email=patient.email,
-            phone=patient.phone,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
-        )
-        
-        db.add(new_patient)
-        db.commit()
-        db.refresh(new_patient)
-        
+        print(f"✅ Paciente creado: {new_patient.name}")
         return new_patient
         
     except Exception as e:
@@ -286,18 +262,42 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
             detail=str(e)
         )
 
-@app.get("/api/patients/", response_model=List[PatientResponse])
-async def get_patients(db: Session = Depends(get_db)):
-    """Obtener todos los pacientes"""
+# Agrega la ruta para la vista de pacientes
+@app.get("/patients", response_class=HTMLResponse)
+@app.head("/patients")
+async def patients_page(request: Request, db: Session = Depends(get_db)):
+    """Ruta para la página de pacientes"""
+    if request.method == "HEAD":
+        return HTMLResponse(content="")
+        
     try:
+        print(f"🔍 Intentando cargar patients_page")
         patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-        return patients
-    except Exception as e:
-        print(f"❌ Error al obtener pacientes: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+        print(f"✅ Pacientes encontrados: {len(patients)}")
+        
+        return templates.TemplateResponse(
+            "patients.html",
+            {
+                "request": request,
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "patients",
+                "patients": patients
+            }
         )
+    except Exception as e:
+        print(f"❌ Error en patients_page: {str(e)}")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error_message": f"Error al cargar la página de pacientes: {str(e)}",
+                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "active": "patients"
+            },
+            status_code=500
+        )
+    
+
 @app.get("/appointments", response_class=HTMLResponse)
 @app.head("/appointments")
 async def appointments_page(request: Request, db: Session = Depends(get_db)):
