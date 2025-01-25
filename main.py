@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from datetime import datetime, timedelta
 from config.settings import settings
 import os
+import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.utils.db import get_db, engine, Base, verify_db_connection
@@ -12,8 +14,9 @@ from app.models.models import Patient, Appointment, Lead
 from typing import Optional
 from pydantic import BaseModel
 
-# Verificar conexión a la base de datos y crear tablas
-# Verificar conexión a la base de datos y crear tablas
+
+
+
 def init_db():
     try:
         # Primero verificar la conexión
@@ -36,6 +39,7 @@ print("🔄 Iniciando configuración de la base de datos...")
 if not init_db():
     raise Exception("Error en la inicialización de la base de datos")
 print("✅ Configuración de base de datos completada")
+
 
 
 # Modelos Pydantic
@@ -291,6 +295,24 @@ async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
 async def create_backup():
     # Aquí iría la lógica para crear el respaldo
     return {"status": "success", "message": "Respaldo iniciado correctamente"}
+
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        print(f"{request.method} {request.url.path} completed in {process_time:.2f}s with status {response.status_code}")
+        return response
+
+app.add_middleware(LoggingMiddleware)
+
+
+# Obtener la ruta base del proyecto
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Montar archivos estáticos con la ruta completa
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "app/static")), name="static")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
