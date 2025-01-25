@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
+from typing import List
 import os
 import time
 from sqlalchemy.orm import Session
@@ -18,6 +19,11 @@ from app.schemas.schemas import (
     AppointmentUpdate
 )
 from config.settings import settings  # Solo importar desde config.settings
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from pydantic import validator
+from app.schemas.schemas import AppointmentCreate, AppointmentResponse
+from app.models.models import Appointment, Patient
 
 # Crear una única instancia de FastAPI
 app = FastAPI(
@@ -29,15 +35,12 @@ app = FastAPI(
 # Un solo middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost",
-        "http://localhost:8000",
-        "https://crm-oarr.onrender.com",
-        "*"  # Solo para desarrollo, remover en producción
-    ],
+    allow_origins=["*"],  # En producción, especifica los dominios exactos
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Especificar todos los métodos
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,  # Tiempo de cache para preflight requests
 )
 
 
@@ -287,12 +290,17 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
         print(f"❌ Error al crear paciente: {str(e)}")
         raise HTTPException(status_code=500, detail="Error al crear el paciente")
 
-@app.get("/api/patients/{patient_id}")
-async def get_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Paciente no encontrado")
-    return patient
+@app.get("/api/patients/", response_model=List[PatientResponse])
+async def get_patients(db: Session = Depends(get_db)):
+    """Obtiene la lista de todos los pacientes"""
+    try:
+        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+        return patients
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al obtener pacientes: {str(e)}"
+        )
 
 @app.delete("/api/patients/{patient_id}")
 async def delete_patient(patient_id: int, db: Session = Depends(get_db)):
@@ -309,26 +317,72 @@ async def delete_patient(patient_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error al eliminar el paciente")
 
 # API Endpoints para Citas
-@app.post("/api/appointments/")
+@app.post("/api/appointments/", response_model=AppointmentResponse, status_code=status.HTTP_201_CREATED)
 async def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get_db)):
+    """
+    Crea una nueva cita médica.
+    
+    Args:
+        appointment: Datos de la cita a crear
+        db: Sesión de base de datos
+    
+    Returns:
+        AppointmentResponse: Datos de la cita creada
+    
+    Raises:
+        HTTPException: Si hay errores en la validación o creación
+    """
     try:
-        # Verificar si el paciente existe
+        # 1. Validar que el paciente existe
         patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
         if not patient:
-            raise HTTPException(status_code=404, detail="Paciente no encontrado")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Paciente no encontrado"
+            )
 
-        # Convertir la fecha
+        # 2. Validar y convertir la fecha
         try:
             appointment_date = datetime.strptime(appointment.date, "%Y-%m-%dT%H:%M")
+            
+            # Validar que la fecha no está en el pasado
+            if appointment_date < datetime.utcnow():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La fecha de la cita no puede estar en el pasado"
+                )
+            
+            # Validar que la fecha no está muy lejos en el futuro (ejemplo: 1 año)
+            if appointment_date > datetime.utcnow() + timedelta(days=365):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La fecha de la cita no puede estar a más de un año en el futuro"
+                )
         except ValueError:
-            raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de fecha inválido. Use el formato: YYYY-MM-DDTHH:MM"
+            )
 
-        # Crear la cita
+        # 3. Verificar si ya existe una cita en el mismo horario
+        existing_appointment = db.query(Appointment).filter(
+            Appointment.date == appointment_date,
+            Appointment.status == "scheduled"
+        ).first()
+        
+        if existing_appointment:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya existe una cita programada para esta fecha y hora"
+            )
+
+        # 4. Crear la cita
         new_appointment = Appointment(
             patient_id=appointment.patient_id,
             date=appointment_date,
             service_type=appointment.service_type,
             status="scheduled",
+            notes=appointment.notes if hasattr(appointment, 'notes') else None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -337,24 +391,29 @@ async def create_appointment(appointment: AppointmentCreate, db: Session = Depen
         db.commit()
         db.refresh(new_appointment)
         
-        return JSONResponse(
-            status_code=201,
-            content={
-                "id": new_appointment.id,
-                "patient_id": new_appointment.patient_id,
-                "date": new_appointment.date.isoformat(),
-                "service_type": new_appointment.service_type,
-                "status": new_appointment.status,
-                "created_at": new_appointment.created_at.isoformat(),
-                "updated_at": new_appointment.updated_at.isoformat()
-            }
+        # 5. Retornar respuesta formateada
+        return AppointmentResponse(
+            id=new_appointment.id,
+            patient_id=new_appointment.patient_id,
+            patient_name=patient.name,  # Incluir nombre del paciente
+            date=new_appointment.date.isoformat(),
+            service_type=new_appointment.service_type,
+            status=new_appointment.status,
+            notes=new_appointment.notes,
+            created_at=new_appointment.created_at,
+            updated_at=new_appointment.updated_at
         )
+
     except HTTPException as he:
         raise he
     except Exception as e:
         db.rollback()
         print(f"❌ Error al crear cita: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error al crear la cita")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear la cita: {str(e)}"
+        )
+    
 
 @app.put("/api/appointments/{appointment_id}/cancel")
 async def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
