@@ -1,38 +1,32 @@
+# Imports estándar
+from datetime import datetime, timedelta, timezone
+
+# Imports de FastAPI
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
-from fastapi import status  # Importación duplicada eliminada
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from sqlalchemy.orm import Session, joinedload
+# Imports de SQLAlchemy
 from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
-
-from pydantic import ValidationError
-
-# Configuración y utilidades
-import os
-import time
-from config.settings import settings
-
-# Base de datos y conexión
+# Imports locales
 from app.utils.db import get_db, engine, Base, verify_db_connection
-
-# Modelos
 from app.models.models import Patient, Appointment, Lead
-
-# Esquemas
 from app.schemas.schemas import (
     PatientCreate, PatientResponse,
     AppointmentCreate, AppointmentResponse,
     LeadCreate, LeadResponse,
     AppointmentUpdate
 )
+from config.settings import settings
 
+# Otros imports
+import os
+import time
 
 # Middleware de Debug - COLOCAR AQUÍ
 class DebugMiddleware(BaseHTTPMiddleware):
@@ -349,6 +343,7 @@ async def create_appointment(
     db: Session = Depends(get_db)
 ):
     try:
+        # Log inicial
         print(f"📝 Recibiendo datos de cita: {appointment.dict()}")
         
         # Verificar que el paciente existe
@@ -359,16 +354,21 @@ async def create_appointment(
                 detail=f"No se encontró el paciente con ID {appointment.patient_id}"
             )
 
-        # Parsear la fecha correctamente
+        # Parsear la fecha
         try:
-            appointment_date = datetime.fromisoformat(appointment.date.replace('Z', '+00:00'))
+            # Asegurarse de que la fecha está en formato correcto
+            if 'Z' in appointment.date:
+                appointment_date = datetime.fromisoformat(appointment.date.replace('Z', '+00:00'))
+            else:
+                appointment_date = datetime.fromisoformat(appointment.date)
         except ValueError as e:
+            print(f"❌ Error parseando fecha: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Formato de fecha inválido: {str(e)}"
             )
 
-        # Crear la cita
+        # Crear la cita con zona horaria UTC
         new_appointment = Appointment(
             patient_id=appointment.patient_id,
             date=appointment_date,
@@ -400,7 +400,7 @@ async def create_appointment(
         raise e
     except Exception as e:
         db.rollback()
-        print(f"❌ Error al crear cita: {str(e)}")
+        print(f"❌ Error inesperado: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
