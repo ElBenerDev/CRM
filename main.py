@@ -1,10 +1,13 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from datetime import datetime, timedelta
 from config.settings import settings
 import os
+from sqlalchemy.orm import Session
+from app.utils.db import get_db
+from app.models.models import Patient, Appointment
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -233,6 +236,30 @@ async def webhook(request: Request):
     data = await request.json()
     print("Datos recibidos:", data)  # Para debug
     return {"status": "success", "data": data}
+
+@app.get("/api/debug/patients")
+async def get_patients(db: Session = Depends(get_db)):
+    patients = db.query(Patient).all()
+    return {"patients": [
+        {
+            "id": p.id, 
+            "name": p.name,
+            "appointments": len(p.appointments)
+        } for p in patients
+    ]}
+
+@app.get("/api/debug/appointments")
+async def get_appointments(db: Session = Depends(get_db)):
+    appointments = db.query(Appointment).all()
+    return {"appointments": [
+        {
+            "id": a.id,
+            "patient_name": a.patient.name,
+            "date": a.date.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": a.status,
+            "service_type": a.service_type
+        } for a in appointments
+    ]}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
