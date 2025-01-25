@@ -383,6 +383,15 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         content={"detail": exc.detail}
     )
 
+@app.template_filter()
+def format_date(date):
+    if date is None:
+        return datetime.now().strftime('%d/%m/%Y')
+    return date.strftime('%d/%m/%Y')
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.filters["format_date"] = format_date
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     import uvicorn
