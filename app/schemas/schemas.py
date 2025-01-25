@@ -129,13 +129,13 @@ class PatientResponse(BaseModel):
 class AppointmentResponse(BaseModel):
     id: int
     patient_id: int
-    patient_name: Optional[str]  # Agregado para mostrar el nombre del paciente
+    patient_name: str  # Agregar este campo
     date: datetime
     service_type: str
     status: str
-    notes: Optional[str]
-    created_at: datetime
-    updated_at: datetime
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

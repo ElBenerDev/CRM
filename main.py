@@ -343,7 +343,6 @@ async def create_appointment(
     db: Session = Depends(get_db)
 ):
     try:
-        # Log inicial
         print(f"📝 Recibiendo datos de cita: {appointment.dict()}")
         
         # Verificar que el paciente existe
@@ -354,24 +353,10 @@ async def create_appointment(
                 detail=f"No se encontró el paciente con ID {appointment.patient_id}"
             )
 
-        # Parsear la fecha
-        try:
-            # Asegurarse de que la fecha está en formato correcto
-            if 'Z' in appointment.date:
-                appointment_date = datetime.fromisoformat(appointment.date.replace('Z', '+00:00'))
-            else:
-                appointment_date = datetime.fromisoformat(appointment.date)
-        except ValueError as e:
-            print(f"❌ Error parseando fecha: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Formato de fecha inválido: {str(e)}"
-            )
-
-        # Crear la cita con zona horaria UTC
+        # Crear la cita
         new_appointment = Appointment(
             patient_id=appointment.patient_id,
-            date=appointment_date,
+            date=datetime.fromisoformat(appointment.date.replace('Z', '+00:00')),
             service_type=appointment.service_type,
             status=appointment.status,
             notes=appointment.notes,
@@ -384,8 +369,21 @@ async def create_appointment(
         db.commit()
         db.refresh(new_appointment)
         
+        # Crear respuesta con el nombre del paciente
+        response_data = {
+            "id": new_appointment.id,
+            "patient_id": new_appointment.patient_id,
+            "patient_name": patient.name,  # Agregar el nombre del paciente
+            "date": new_appointment.date,
+            "service_type": new_appointment.service_type,
+            "status": new_appointment.status,
+            "notes": new_appointment.notes,
+            "created_at": new_appointment.created_at,
+            "updated_at": new_appointment.updated_at
+        }
+        
         print(f"✅ Cita creada exitosamente para {patient.name}")
-        return new_appointment
+        return response_data
         
     except ValueError as e:
         db.rollback()
