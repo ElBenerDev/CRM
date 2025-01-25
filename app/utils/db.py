@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
@@ -46,7 +46,8 @@ def get_db():
 def verify_db_connection():
     try:
         db = SessionLocal()
-        db.execute("SELECT 1")
+        # Usar text() para la consulta SQL
+        db.execute(text("SELECT 1"))
         print("✅ Verificación de conexión exitosa")
         return True
     except Exception as e:

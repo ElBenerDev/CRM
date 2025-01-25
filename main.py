@@ -13,25 +13,30 @@ from typing import Optional
 from pydantic import BaseModel
 
 # Verificar conexión a la base de datos y crear tablas
+# Verificar conexión a la base de datos y crear tablas
 def init_db():
     try:
         # Primero verificar la conexión
         if not verify_db_connection():
-            raise Exception("No se pudo establecer conexión con la base de datos")
+            print("❌ No se pudo verificar la conexión a la base de datos")
+            return False
         
         # Si la conexión es exitosa, crear las tablas
         Base.metadata.create_all(bind=engine)
         print("✅ Base de datos inicializada correctamente")
         print("✅ Tablas creadas/verificadas correctamente")
+        return True
         
     except Exception as e:
         print(f"❌ Error al inicializar la base de datos: {str(e)}")
-        raise
+        return False
 
 # Inicializar base de datos
 print("🔄 Iniciando configuración de la base de datos...")
-init_db()
+if not init_db():
+    raise Exception("Error en la inicialización de la base de datos")
 print("✅ Configuración de base de datos completada")
+
 
 # Modelos Pydantic
 class PatientCreate(BaseModel):
