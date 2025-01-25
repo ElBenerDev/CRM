@@ -8,10 +8,13 @@ from datetime import datetime, timedelta
 from pydantic import ValidationError
 from typing import List, Optional
 from datetime import timezone
-
+from typing import List
+from datetime import datetime, timezone
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 import os
 import time
-from sqlalchemy.orm import Session
+
 from sqlalchemy import func
 from app.utils.db import get_db, engine, Base, verify_db_connection
 from app.models.models import Patient, Appointment, Lead
@@ -257,41 +260,44 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
             detail=str(e)
         )
     
-@app.get("/patients", response_class=HTMLResponse)
-@app.head("/patients")
-async def patients_page(request: Request, db: Session = Depends(get_db)):
-    """Ruta para la página de pacientes"""
-    if request.method == "HEAD":
-        return HTMLResponse(content="")
-        
+@app.post("/api/patients/", response_model=PatientResponse)
+async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     try:
-        print(f"🔍 Intentando cargar patients_page")
-        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-        print(f"✅ Pacientes encontrados: {len(patients)}")
-        
-        return templates.TemplateResponse(
-            "patients.html",
-            {
-                "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "patients",
-                "patients": patients,
-                "datetime": datetime
-            }
+        # Crear nuevo paciente sin especificar ID
+        new_patient = Patient(
+            name=patient.name,
+            email=patient.email,
+            phone=patient.phone,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
+        
+        db.add(new_patient)
+        db.commit()
+        db.refresh(new_patient)
+        
+        return new_patient
+        
     except Exception as e:
-        print(f"❌ Error en patients_page: {str(e)}")
-        return templates.TemplateResponse(
-            "error.html",
-            {
-                "request": request,
-                "error_message": f"Error al cargar la página de pacientes: {str(e)}",
-                "user": {"name": "ElBenerDev", "role": "Admin"},
-                "active": "patients"
-            },
-            status_code=500
+        db.rollback()
+        print(f"❌ Error al crear paciente: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
 
+@app.get("/api/patients/", response_model=List[PatientResponse])
+async def get_patients(db: Session = Depends(get_db)):
+    """Obtener todos los pacientes"""
+    try:
+        patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+        return patients
+    except Exception as e:
+        print(f"❌ Error al obtener pacientes: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 @app.get("/appointments", response_class=HTMLResponse)
 @app.head("/appointments")
 async def appointments_page(request: Request, db: Session = Depends(get_db)):
