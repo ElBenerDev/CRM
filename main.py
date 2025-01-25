@@ -18,6 +18,32 @@ from app.schemas.schemas import (
     AppointmentUpdate
 )
 from config.settings import settings
+from app.core.config import settings
+from app.middleware.logging import log_request_middleware
+from app.middleware.rate_limit import RateLimiter
+from app.middleware.error_handler import error_handler_middleware
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(RateLimiter, requests_per_minute=60)
+
+# Agregar logging
+app.middleware("http")(log_request_middleware)
+
+# Agregar manejador de errores
+app.middleware("http")(error_handler_middleware)
+
 
 origins = [
     "http://localhost",
