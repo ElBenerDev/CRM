@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.utils.db import Base
 
+
 class Patient(Base):
     __tablename__ = "patients"
 
@@ -37,10 +38,10 @@ class Lead(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True)
     phone = Column(String)
-    status = Column(String, default="nuevo")  # nuevo, contactado, convertido, perdido
-    source = Column(String)  # referido, web, redes sociales, etc.
-    interest = Column(String)  # tipo de servicio de interés
-    priority = Column(String, default="media")  # alta, media, baja
-    notes = Column(Text)
+    status = Column(String, default="nuevo")
+    source = Column(String, nullable=True)  # Nuevo campo
+    interest = Column(String, nullable=True)  # Nuevo campo
+    priority = Column(String, default="media")  # Nuevo campo
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
