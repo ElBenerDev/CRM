@@ -15,7 +15,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 # Imports locales
-from app.utils.db import get_db, engine, Base, verify_db_connection
+from app.utils.db import get_db, engine, Base, verify_db_connection, reset_db
 from app.models.models import Patient, Appointment, Lead, User
 from app.schemas.schemas import (
     PatientCreate, PatientResponse,
@@ -124,17 +124,16 @@ def init_db():
     try:
         if not verify_db_connection():
             raise Exception("No se pudo establecer conexión con la base de datos")
-        Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
         
+        # Usar reset_db para una inicialización limpia
+        if not reset_db():
+            raise Exception("Error al reinicializar la base de datos")
+            
         print("✅ Base de datos inicializada correctamente")
         return True
     except Exception as e:
         print(f"❌ Error al inicializar la base de datos: {str(e)}")
         return False
-
-if not init_db():
-    raise Exception("Error en la inicialización de la base de datos")
 
 # Configurar middleware
 app.add_middleware(LoggingMiddleware)

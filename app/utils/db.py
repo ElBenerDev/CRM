@@ -56,3 +56,29 @@ def verify_db_connection():
     except Exception as e:
         print(f"❌ Error en la verificación de conexión: {str(e)}")
         return False
+    
+def reset_db():
+    try:
+        if not verify_db_connection():
+            raise Exception("No se pudo establecer conexión con la base de datos")
+            
+        # Importar los modelos aquí para evitar importación circular
+        from app.models.models import Base
+            
+        # Desactivar las restricciones de clave foránea temporalmente
+        with engine.connect() as conn:
+            conn.execute(text("SET CONSTRAINTS ALL DEFERRED"))
+            
+        # Eliminar todas las tablas en el orden correcto
+        Base.metadata.drop_all(bind=engine)
+        
+        # Crear todas las tablas nuevamente
+        Base.metadata.create_all(bind=engine)
+        
+        print("✅ Base de datos reinicializada correctamente")
+        return True
+    except Exception as e:
+        print(f"❌ Error al reinicializar la base de datos: {str(e)}")
+        return False
+    
+__all__ = ['engine', 'SessionLocal', 'Base', 'get_db', 'verify_db_connection', 'reset_db']
