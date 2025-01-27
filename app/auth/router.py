@@ -23,23 +23,42 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 async def login_page(request: Request):
     return templates.TemplateResponse("auth/login.html", {"request": request})
 
+# app/auth/router.py
+# Modifica la ruta del token y agrega el manejo de cookies
+
 @router.post("/token")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {
+                "request": request,
+                "error": "Email o contraseña incorrectos"
+            },
+            status_code=401
         )
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.email},
+        expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    
+    # Crear respuesta con redirección
+    response = RedirectResponse(url="/", status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        max_age=1800,
+        expires=1800,
+    )
+    return response
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):

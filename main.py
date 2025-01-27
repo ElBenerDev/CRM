@@ -26,6 +26,7 @@ from app.schemas.schemas import (
 
 from config.settings import settings
 from app.auth.utils import oauth2_scheme, get_current_user
+from app.middleware.auth import AuthMiddleware
 
 # Otros imports
 import os
@@ -35,7 +36,22 @@ import time
 from app.auth.router import router as auth_router
 from app.auth.utils import oauth2_scheme, get_current_user
 
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # No requerir autenticación para rutas de auth y static
+        if request.url.path.startswith("/auth/") or request.url.path.startswith("/static/"):
+            return await call_next(request)
 
+        try:
+            # Obtener token
+            token = await oauth2_scheme(request)
+            if not token:
+                return RedirectResponse(url="/auth/login", status_code=302)
+        except HTTPException:
+            return RedirectResponse(url="/auth/login", status_code=302)
+
+        response = await call_next(request)
+        return response
 
 
 
@@ -54,6 +70,8 @@ class DebugMiddleware(BaseHTTPMiddleware):
             print(f"❌ DEBUG - Error: {str(e)}")
             raise e
 
+
+
 # Crear una única instancia de FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
@@ -63,6 +81,7 @@ app = FastAPI(
 
 
 app.include_router(auth_router)
+app.add_middleware(AuthMiddleware)
 
 # Agregar los middlewares en orden
 app.add_middleware(DebugMiddleware)  # Primero el Debug
@@ -166,19 +185,18 @@ templates.env.filters["format_date"] = format_date
 @app.get("/", response_class=HTMLResponse)
 async def home(
     request: Request, 
-    db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme)
+    db: Session = Depends(get_db)
 ):
-    """Ruta principal que muestra el dashboard"""
     try:
-        # Verificar HEAD request
-        if request.method == "HEAD":
-            return HTMLResponse(content="")
-
+        # Obtener token de las cookies
+        token = request.cookies.get("access_token")
+        if token and token.startswith("Bearer "):
+            token = token.split(" ")[1]
+        
         # Obtener usuario actual
-        current_user = get_current_user(db, token)
+        current_user = await get_current_user(db=db, token=token)
         if not current_user:
-            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+            return RedirectResponse(url="/auth/login", status_code=302)
 
         # Definir los diccionarios de nombres
         service_names = {
@@ -307,21 +325,29 @@ async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
 # Agrega la ruta para la vista de pacientes
 @app.get("/patients", response_class=HTMLResponse)
 @app.head("/patients")
-async def patients_page(request: Request, db: Session = Depends(get_db)):
-    """Ruta para la página de pacientes"""
-    if request.method == "HEAD":
-        return HTMLResponse(content="")
-        
+async def patients_page(
+    request: Request, 
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+):
     try:
-        print(f"🔍 Intentando cargar patients_page")
+        # Obtener usuario actual
+        current_user = get_current_user(db, token)
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+
         patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-        print(f"✅ Pacientes encontrados: {len(patients)}")
         
         return templates.TemplateResponse(
             "patients.html",
             {
                 "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "current_user": current_user,  # Usar current_user en lugar de user fijo
+                "user": {
+                    "name": current_user.name,
+                    "role": "Admin",
+                    "email": current_user.email
+                },
                 "active": "patients",
                 "patients": patients
             }
