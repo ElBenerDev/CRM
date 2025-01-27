@@ -124,7 +124,9 @@ def init_db():
     try:
         if not verify_db_connection():
             raise Exception("No se pudo establecer conexión con la base de datos")
+        Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
+        
         print("✅ Base de datos inicializada correctamente")
         return True
     except Exception as e:
