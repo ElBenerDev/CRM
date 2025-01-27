@@ -1,10 +1,19 @@
-/* app/static/css/styles.css */
 .login-container {
     max-width: 400px;
     margin: 100px auto;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.error-message {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
 }
 
 .form-group {
@@ -23,18 +32,10 @@
     border-radius: 4px;
 }
 
-.error-message {
-    color: red;
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: #ffebee;
-    border-radius: 4px;
-}
-
 button {
     width: 100%;
     padding: 10px;
-    background-color: #4CAF50;
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
@@ -42,5 +43,5 @@ button {
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #0056b3;
 }

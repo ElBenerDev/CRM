@@ -32,33 +32,46 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
+    try:
+        user = authenticate_user(db, form_data.username, form_data.password)
+        if not user:
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Email o contraseña incorrectos"
+                },
+                status_code=401
+            )
+        
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=access_token_expires
+        )
+        
+        # Crear respuesta con redirección
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            max_age=1800,
+            expires=1800,
+            path="/"  # Asegúrate de que la cookie esté disponible en todas las rutas
+        )
+        return response
+        
+    except Exception as e:
+        print(f"Error en login: {str(e)}")
         return templates.TemplateResponse(
             "auth/login.html",
             {
                 "request": request,
-                "error": "Email o contraseña incorrectos"
+                "error": "Error en el servidor"
             },
-            status_code=401
+            status_code=500
         )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email},
-        expires_delta=access_token_expires
-    )
-    
-    # Crear respuesta con redirección
-    response = RedirectResponse(url="/", status_code=302)
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        max_age=1800,
-        expires=1800,
-    )
-    return response
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):

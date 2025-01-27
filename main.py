@@ -1,40 +1,80 @@
-# Imports estándar
+# Imports estándar de Python
 from datetime import datetime, timedelta, timezone
+import os
+import time
+from typing import Optional, Dict, List  # Agregado para type hints
 
-# Imports de FastAPI
-from fastapi import FastAPI, Request, Depends, HTTPException, status
+# Imports de FastAPI y Starlette
+from fastapi import (
+    FastAPI,
+    Request,
+    Depends,
+    HTTPException,
+    status,
+    Response,
+    Cookie,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
+from fastapi.responses import (
+    PlainTextResponse,
+    JSONResponse,
+    HTMLResponse,
+    RedirectResponse,
+)
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.responses import RedirectResponse
 
 # Imports de SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, desc, and_, or_
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import SQLAlchemyError
 
-# Imports locales
-from app.utils.db import get_db, engine, Base, verify_db_connection, reset_db
-from app.models.models import Patient, Appointment, Lead, User
-from app.schemas.schemas import (
-    PatientCreate, PatientResponse,
-    AppointmentCreate, AppointmentResponse,
-    LeadCreate, LeadResponse,
-    AppointmentUpdate
+# Imports locales - Configuración y utilidades
+from config.settings import settings
+from app.utils.db import (
+    get_db,
+    engine,
+    Base,
+    verify_db_connection,
+    reset_db,
+    SessionLocal,
 )
 
-from config.settings import settings
-from app.auth.utils import oauth2_scheme, get_current_user
+# Imports locales - Modelos
+from app.models.models import (
+    Patient,
+    Appointment,
+    Lead,
+    User,
+)
+
+# Imports locales - Schemas
+from app.schemas.schemas import (
+    PatientCreate,
+    PatientResponse,
+    AppointmentCreate,
+    AppointmentResponse,
+    LeadCreate,
+    LeadResponse,
+    AppointmentUpdate,
+    Token,
+)
+
+# Imports locales - Autenticación
+from app.auth.utils import (
+    oauth2_scheme,
+    get_current_user,
+    get_current_active_user,
+    create_access_token,
+    verify_token,
+)
+from app.auth.router import router as auth_router
 from app.middleware.auth import AuthMiddleware
 
-# Otros imports
-import os
-import time
-
-#login imports
-from app.auth.router import router as auth_router
-from app.auth.utils import oauth2_scheme, get_current_user
+# Configuración de plantillas
+templates = Jinja2Templates(directory="app/templates")
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -190,12 +230,19 @@ async def home(
     try:
         # Obtener token de las cookies
         token = request.cookies.get("access_token")
-        if token and token.startswith("Bearer "):
+        if not token:
+            return RedirectResponse(url="/auth/login", status_code=302)
+            
+        # Limpiar el prefijo "Bearer " si existe
+        if token.startswith("Bearer "):
             token = token.split(" ")[1]
-        
-        # Obtener usuario actual
-        current_user = await get_current_user(db=db, token=token)
-        if not current_user:
+            
+        try:
+            # Verificar el token y obtener el usuario
+            current_user = await get_current_user(db=db, token=token)
+            if not current_user:
+                return RedirectResponse(url="/auth/login", status_code=302)
+        except:
             return RedirectResponse(url="/auth/login", status_code=302)
 
         # Definir los diccionarios de nombres
@@ -204,21 +251,19 @@ async def home(
             'consultation': 'Consulta',
             'treatment': 'Tratamiento',
             'emergency': 'Emergencia',
-            # Agrega más servicios según necesites
         }
 
         status_names = {
             'scheduled': 'Programada',
             'completed': 'Completada',
             'cancelled': 'Cancelada',
-            # Agrega más estados según necesites
         }
 
         # Estadísticas
         total_patients = db.query(func.count(Patient.id)).scalar() or 0
         
         # Citas de hoy
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
         appointments_today = db.query(func.count(Appointment.id))\
             .filter(Appointment.date.between(today_start, today_end))\
@@ -236,7 +281,7 @@ async def home(
         # Próximas citas con información del paciente
         upcoming_appointments = db.query(Appointment)\
             .join(Patient)\
-            .filter(Appointment.date >= datetime.utcnow())\
+            .filter(Appointment.date >= datetime.now(timezone.utc))\
             .filter(Appointment.status == 'scheduled')\
             .order_by(Appointment.date)\
             .limit(5)\
@@ -253,10 +298,10 @@ async def home(
             "dashboard.html",
             {
                 "request": request,
-                "current_user": current_user,  # Usar current_user en lugar de user fijo
+                "current_user": current_user,
                 "user": {
                     "name": current_user.name,
-                    "role": "Admin",  # Puedes agregar un campo role en el modelo User si lo necesitas
+                    "role": "Admin",
                     "email": current_user.email
                 },
                 "stats": {
@@ -273,10 +318,8 @@ async def home(
         )
 
     except HTTPException as he:
-        # Manejar errores de autenticación
-        if he.status_code == status.HTTP_401_UNAUTHORIZED:
-            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
-        raise he
+        print(f"❌ Error de HTTP en home: {str(he)}")
+        return RedirectResponse(url="/auth/login", status_code=302)
 
     except Exception as e:
         print(f"❌ Error en home: {str(e)}")
@@ -285,11 +328,10 @@ async def home(
             {
                 "request": request,
                 "error_message": f"Error al cargar el dashboard: {str(e)}",
-                "current_user": current_user if 'current_user' in locals() else None,
                 "user": {
-                    "name": current_user.name if 'current_user' in locals() else "Usuario",
+                    "name": "Usuario",
                     "role": "Admin",
-                    "email": current_user.email if 'current_user' in locals() else ""
+                    "email": ""
                 }
             },
             status_code=500
