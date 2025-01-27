@@ -14,6 +14,7 @@ from .utils import (
 from datetime import timedelta
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from fastapi.responses import JSONResponse
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -33,24 +34,23 @@ async def login(
     db: Session = Depends(get_db)
 ):
     try:
+        print(f"Intentando autenticar usuario: {form_data.username}")  # Log para debugging
         user = authenticate_user(db, form_data.username, form_data.password)
+        
         if not user:
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Email o contraseña incorrectos"
-                },
-                status_code=401
+            print("Autenticación fallida")  # Log para debugging
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Email o contraseña incorrectos"}
             )
         
+        print("Usuario autenticado exitosamente")  # Log para debugging
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user.email},
             expires_delta=access_token_expires
         )
         
-        # Crear respuesta con redirección
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             key="access_token",
@@ -58,19 +58,18 @@ async def login(
             httponly=True,
             max_age=1800,
             expires=1800,
-            path="/"  # Asegúrate de que la cookie esté disponible en todas las rutas
+            path="/",
+            secure=True,  # Solo HTTPS
+            samesite="lax"  # Protección CSRF
         )
+        print("Redirigiendo a /")  # Log para debugging
         return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {
-                "request": request,
-                "error": "Error en el servidor"
-            },
-            status_code=500
+        print(f"Error en login: {str(e)}")  # Log para debugging
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error en el servidor: {str(e)}"}
         )
 
 @router.post("/register", response_model=UserResponse)

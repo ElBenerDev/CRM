@@ -14,7 +14,7 @@
             {{ error }}
         </div>
         {% endif %}
-        <form method="POST" action="/auth/token" enctype="application/x-www-form-urlencoded">
+        <form id="loginForm" method="POST" action="/auth/token">
             <div class="form-group">
                 <label for="username">Email:</label>
                 <input type="email" id="username" name="username" required>
@@ -28,24 +28,41 @@
     </div>
 
     <script>
-        document.querySelector('form').addEventListener('submit', async (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const formData = new FormData(e.target);
-            const response = await fetch('/auth/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams(formData)
-            });
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams(formData),
+                    redirect: 'follow'
+                });
 
-            if (response.ok) {
-                window.location.href = '/';
-            } else {
+                if (response.ok) {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else {
+                        window.location.href = '/';
+                    }
+                } else {
+                    const data = await response.json().catch(() => null);
+                    const errorMessage = data?.detail || 'Error en el inicio de sesión';
+                    const errorDiv = document.querySelector('.error-message') || document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = errorMessage;
+                    if (!document.querySelector('.error-message')) {
+                        document.querySelector('h1').after(errorDiv);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
                 const errorDiv = document.querySelector('.error-message') || document.createElement('div');
                 errorDiv.className = 'error-message';
-                errorDiv.textContent = 'Error en el inicio de sesión';
+                errorDiv.textContent = 'Error en la conexión';
                 if (!document.querySelector('.error-message')) {
                     document.querySelector('h1').after(errorDiv);
                 }
