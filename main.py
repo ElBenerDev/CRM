@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 import os
 import time
-from typing import Optional, Dict, List  # Agregado para type hints
+from typing import Optional, Dict, List
 
 # Imports de FastAPI y Starlette
 from fastapi import (
@@ -12,7 +12,6 @@ from fastapi import (
     HTTPException,
     status,
     Response,
-    Cookie,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,9 +26,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # Imports de SQLAlchemy
-from sqlalchemy import func, desc, and_, or_
+from sqlalchemy import func, desc
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.exc import SQLAlchemyError
 
 # Imports locales - Configuración y utilidades
 from config.settings import settings
@@ -39,7 +37,6 @@ from app.utils.db import (
     Base,
     verify_db_connection,
     reset_db,
-    SessionLocal,
 )
 
 # Imports locales - Modelos
@@ -59,16 +56,12 @@ from app.schemas.schemas import (
     LeadCreate,
     LeadResponse,
     AppointmentUpdate,
-    Token,
 )
 
 # Imports locales - Autenticación
 from app.auth.utils import (
     oauth2_scheme,
     get_current_user,
-    get_current_active_user,
-    create_access_token,
-    verify_token,
 )
 from app.auth.router import router as auth_router
 from app.middleware.auth import AuthMiddleware
