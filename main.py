@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import RedirectResponse
 
 # Imports de SQLAlchemy
 from sqlalchemy import func
@@ -15,18 +16,28 @@ from sqlalchemy.orm import Session, joinedload
 
 # Imports locales
 from app.utils.db import get_db, engine, Base, verify_db_connection
-from app.models.models import Patient, Appointment, Lead
+from app.models.models import Patient, Appointment, Lead, User
 from app.schemas.schemas import (
     PatientCreate, PatientResponse,
     AppointmentCreate, AppointmentResponse,
     LeadCreate, LeadResponse,
     AppointmentUpdate
 )
+
 from config.settings import settings
+from app.auth.utils import oauth2_scheme, get_current_user
 
 # Otros imports
 import os
 import time
+
+#login imports
+from app.auth.router import router as auth_router
+from app.auth.utils import oauth2_scheme, get_current_user
+
+
+
+
 
 # Middleware de Debug - COLOCAR AQUÍ
 class DebugMiddleware(BaseHTTPMiddleware):
@@ -49,6 +60,9 @@ app = FastAPI(
     description="Sistema CRM para gestión dental",
     version=settings.APP_VERSION,
 )
+
+
+app.include_router(auth_router)
 
 # Agregar los middlewares en orden
 app.add_middleware(DebugMiddleware)  # Primero el Debug
@@ -149,12 +163,21 @@ templates.env.filters["format_date"] = format_date
 
 # Rutas de páginas con soporte mejorado para HEAD
 @app.get("/", response_class=HTMLResponse)
-@app.head("/")
-async def home(request: Request, db: Session = Depends(get_db)):
+async def home(
+    request: Request, 
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+):
     """Ruta principal que muestra el dashboard"""
     try:
+        # Verificar HEAD request
         if request.method == "HEAD":
             return HTMLResponse(content="")
+
+        # Obtener usuario actual
+        current_user = get_current_user(db, token)
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
 
         # Definir los diccionarios de nombres
         service_names = {
@@ -211,7 +234,12 @@ async def home(request: Request, db: Session = Depends(get_db)):
             "dashboard.html",
             {
                 "request": request,
-                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "current_user": current_user,  # Usar current_user en lugar de user fijo
+                "user": {
+                    "name": current_user.name,
+                    "role": "Admin",  # Puedes agregar un campo role en el modelo User si lo necesitas
+                    "email": current_user.email
+                },
                 "stats": {
                     "total_patients": total_patients,
                     "appointments_today": appointments_today,
@@ -225,6 +253,12 @@ async def home(request: Request, db: Session = Depends(get_db)):
             }
         )
 
+    except HTTPException as he:
+        # Manejar errores de autenticación
+        if he.status_code == status.HTTP_401_UNAUTHORIZED:
+            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+        raise he
+
     except Exception as e:
         print(f"❌ Error en home: {str(e)}")
         return templates.TemplateResponse(
@@ -232,10 +266,17 @@ async def home(request: Request, db: Session = Depends(get_db)):
             {
                 "request": request,
                 "error_message": f"Error al cargar el dashboard: {str(e)}",
-                "user": {"name": "ElBenerDev", "role": "Admin"},
+                "current_user": current_user if 'current_user' in locals() else None,
+                "user": {
+                    "name": current_user.name if 'current_user' in locals() else "Usuario",
+                    "role": "Admin",
+                    "email": current_user.email if 'current_user' in locals() else ""
+                }
             },
             status_code=500
         )
+        
+        
 @app.post("/api/patients/", response_model=PatientResponse)
 async def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     try:
