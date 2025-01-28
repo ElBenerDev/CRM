@@ -140,7 +140,7 @@ app.add_middleware(
 )
 app.add_middleware(AuthMiddleware)
 app.add_middleware(DebugMiddleware)
-
+templates = Jinja2Templates(directory="app/templates")
 # Routers
 app.include_router(auth_router)
 
@@ -150,6 +150,20 @@ for dir_name in ["js", "css", "img"]:
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == 405:  # Method Not Allowed
+        return RedirectResponse(url="/auth/login", status_code=303)
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_message": str(exc.detail),
+            "status_code": exc.status_code
+        },
+        status_code=exc.status_code
+    )
 # Funciones auxiliares
 def format_date(date):
     if date is None:

@@ -20,11 +20,6 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse("auth/login.html", {"request": request})
-
-# app/auth/router.py
 # Modifica la ruta del token y agrega el manejo de cookies
 
 @router.post("/token")
@@ -33,24 +28,32 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    print("Recibiendo solicitud de login")
+    print("Iniciando proceso de login")
     print(f"Email recibido: {form_data.username}")
-    
-    try:
-        user = authenticate_user(db, form_data.username, form_data.password)
-        if not user:
-            print("Autenticación fallida")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Usuario o contraseña incorrectos"
-                }
-            )
 
-        print("Usuario autenticado correctamente")
+    try:
+        # Intenta autenticar al usuario
+        user = authenticate_user(db, form_data.username, form_data.password)
+        
+        if not user:
+            print("Autenticación fallida - Redirigiendo a login con error")
+            response = RedirectResponse(
+                url="/auth/login?error=credenciales_invalidas",
+                status_code=303
+            )
+            return response
+
+        # Usuario autenticado correctamente
+        print(f"Usuario autenticado: {user.email}")
         access_token = create_access_token(data={"sub": user.email})
-        response = RedirectResponse(url="/", status_code=302)
+        
+        # Crear respuesta de redirección
+        response = RedirectResponse(
+            url="/",
+            status_code=303  # Cambiado a 303 See Other
+        )
+        
+        # Establecer cookie
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -60,18 +63,32 @@ async def login(
             max_age=1800,
             path="/"
         )
+        
+        print("Redirigiendo al dashboard")
         return response
         
     except Exception as e:
         print(f"Error en login: {str(e)}")
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {
-                "request": request,
-                "error": "Error en el servidor"
-            }
+        return RedirectResponse(
+            url="/auth/login?error=error_servidor",
+            status_code=303
         )
         
+@router.get("/login")
+async def login_page(request: Request, error: str = None):
+    error_messages = {
+        "credenciales_invalidas": "Usuario o contraseña incorrectos",
+        "error_servidor": "Error del servidor, por favor intente más tarde"
+    }
+    
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {
+            "request": request,
+            "error": error_messages.get(error, "") if error else ""
+        }
+    )
+    
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()

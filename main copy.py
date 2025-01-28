@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.responses import PlainTextResponse, JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from datetime import datetime, timedelta
 import os
@@ -428,10 +428,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    print(f"❌ HTTP Error: {exc.status_code} - {exc.detail}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
+    if exc.status_code == 405:  # Method Not Allowed
+        return RedirectResponse(url="/auth/login", status_code=303)
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_message": str(exc.detail),
+            "status_code": exc.status_code
+        },
+        status_code=exc.status_code
     )
 
 @app.template_filter()
