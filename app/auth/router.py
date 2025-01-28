@@ -24,27 +24,29 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 @router.post("/token")
 async def login(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
-    print(f"Método de la petición: {request.method}")
     
-    # Log de headers
-    print("\nHeaders recibidos:")
-    for name, value in request.headers.items():
-        print(f"{name}: {value}")
-    
-    # Log de body
-    body = await request.body()
-    print(f"\nBody recibido: {body.decode()}")
-    
-    print(f"Email recibido: {username}")
-    print("="*50)
-
     try:
+        form_data = await request.form()
+        username = form_data.get('username')
+        password = form_data.get('password')
+        
+        print(f"Email recibido: {username}")
+        
+        if not username or not password:
+            print("Faltan credenciales")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Por favor ingrese email y contraseña"
+                },
+                status_code=400
+            )
+
         user = authenticate_user(db, username, password)
         
         if not user:
@@ -54,19 +56,18 @@ async def login(
                 {
                     "request": request,
                     "error": "Credenciales inválidas"
-                }
+                },
+                status_code=401
             )
 
         print(f"Usuario autenticado: {user.email}")
         access_token = create_access_token(data={"sub": user.email})
         
-        # Crear redirección
         response = RedirectResponse(
             url="/",
-            status_code=303  # 303 See Other
+            status_code=303
         )
         
-        # Establecer cookie
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -79,6 +80,7 @@ async def login(
         
         print("Cookie establecida correctamente")
         print("Redirigiendo al dashboard")
+        print("="*50)
         return response
         
     except Exception as e:
@@ -90,7 +92,8 @@ async def login(
             {
                 "request": request,
                 "error": "Error del servidor, por favor intente más tarde"
-            }
+            },
+            status_code=500
         )
         
 @router.get("/login")
