@@ -65,47 +65,50 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('loginForm');
-    const emailInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    const submitBtn = document.getElementById('submitBtn');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    function showError(message) {
+        const existingError = form.querySelector('.error-message');
+        if (existingError) existingError.remove();
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4';
+        errorDiv.textContent = message;
+        form.insertBefore(errorDiv, form.firstChild);
+    }
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         console.log('Iniciando proceso de login...');
 
-        if (!emailInput.value || !passwordInput.value) {
-            console.error('Campos incompletos');
-            return;
-        }
-
+        // Deshabilitar botón
         submitBtn.disabled = true;
         submitBtn.innerHTML = 'Iniciando sesión...';
 
         try {
-            const formData = new FormData(form);
-            console.log('Enviando datos al servidor...');
+            const formData = new FormData(this);
+            console.log('Enviando credenciales...');
             
             const response = await fetch('/auth/token', {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json'
-                }
+                body: formData
             });
 
+            const data = await response.json();
             console.log('Respuesta recibida:', response.status);
 
-            if (response.redirected) {
-                console.log('Redirigiendo a:', response.url);
-                window.location.href = response.url;
-            } else if (!response.ok) {
-                const data = await response.json();
-                console.error('Error:', data);
-                throw new Error(data.detail || 'Error en el inicio de sesión');
+            if (response.ok && data.success) {
+                console.log('Login exitoso, redirigiendo...');
+                window.location.href = data.redirect;
+            } else {
+                console.error('Error:', data.error);
+                showError(data.error || 'Error en el inicio de sesión');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Iniciar Sesión';
             }
-
         } catch (error) {
-            console.error('Error en el proceso:', error);
+            console.error('Error en la solicitud:', error);
+            showError('Error de conexión');
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Iniciar Sesión';
         }

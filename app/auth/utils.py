@@ -31,7 +31,7 @@ def log_auth(message: str):
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica la contraseña"""
     try:
-        print(f"\n[DEBUG] Verificando contraseña...")
+        print(f"\n[DEBUG] Verificando contraseña para usuario")
         result = pwd_context.verify(plain_password, hashed_password)
         print(f"[DEBUG] Resultado verificación: {'✓ OK' if result else '✗ FAIL'}")
         return result
