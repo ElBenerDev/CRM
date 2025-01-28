@@ -6,6 +6,9 @@ from typing import Optional, Dict, List
 import logging
 from pathlib import Path
 
+
+from fastapi.templating import Jinja2Templates
+from starlette.routing import Router
 # FastAPI y Starlette
 from fastapi import (
     FastAPI, 
@@ -115,6 +118,12 @@ def init_db():
         print(f"❌ Error al inicializar la base de datos: {str(e)}")
         return False
 
+
+def url_for(request: Request, name: str, **params):
+    return request.url_for(name, **params)
+
+templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["url_for"] = url_for
 # Inicialización de FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
@@ -138,8 +147,10 @@ app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 
 # Configuración de archivos estáticos
-for dir_name in ["js", "css", "img"]:
-    os.makedirs(os.path.join(STATIC_DIR, dir_name), exist_ok=True)
+for dir_name in ["css", "js", "img"]:
+    dir_path = os.path.join(STATIC_DIR, dir_name)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
