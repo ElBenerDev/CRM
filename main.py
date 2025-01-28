@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 import traceback
 from starlette.middleware.sessions import SessionMiddleware
+from app.middleware.auth import AuthMiddleware
 
 # FastAPI y Starlette
 from fastapi import (
@@ -113,6 +114,8 @@ def url_for(request: Request, name: str, **params):
 # Configuración de templates
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.globals["url_for"] = url_for
+
+
 
 # Inicialización de FastAPI
 app = FastAPI(
