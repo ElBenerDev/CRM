@@ -32,25 +32,33 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        return RedirectResponse(
-            url="/auth/login?error=invalid_credentials",
-            status_code=302
+    try:
+        user = authenticate_user(db, form_data.username, form_data.password)
+        if not user:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Credenciales inválidas"}
+            )
+        
+        access_token = create_access_token(data={"sub": user.email})
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=1800
         )
-    
-    access_token = create_access_token(data={"sub": user.email})
-    response = RedirectResponse(url="/", status_code=302)
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=1800
-    )
-    return response
-
+        return response
+        
+    except Exception as e:
+        print(f"Error en login: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Error en el servidor"}
+        )
+        
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()

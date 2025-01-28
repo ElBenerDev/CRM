@@ -73,13 +73,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 token = token.split(" ")[1]
 
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            if not payload.get("sub"):
+            email = payload.get("sub")
+            
+            if not email:
                 return RedirectResponse(url="/auth/login", status_code=302)
 
             response = await call_next(request)
             return response
             
-        except:
+        except Exception as e:
+            print(f"❌ Auth Error: {str(e)}")
             return RedirectResponse(url="/auth/login", status_code=302)
 
 class DebugMiddleware(BaseHTTPMiddleware):
