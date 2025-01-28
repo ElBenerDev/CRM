@@ -27,7 +27,10 @@ from sqlalchemy.orm import Session
 
 # JWT y Autenticación
 from app.auth.utils import (
-    get_current_user,
+    SECRET_KEY, 
+    ALGORITHM, 
+    get_current_user, 
+    ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.auth.router import router as auth_router
 
