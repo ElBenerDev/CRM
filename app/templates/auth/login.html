@@ -9,8 +9,13 @@
 <body>
     <div class="login-container">
         <h1>Iniciar Sesión</h1>
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
-        <form id="loginForm">
+        {% if error %}
+        <div class="error-message">
+            {{ error }}
+        </div>
+        {% endif %}
+        <!-- Cambiamos para usar el formulario de manera tradicional -->
+        <form method="POST" action="/auth/token">
             <div class="form-group">
                 <label for="username">Email:</label>
                 <input type="email" id="username" name="username" required>
@@ -22,49 +27,5 @@
             <button type="submit">Iniciar Sesión</button>
         </form>
     </div>
-
-    <script>
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            console.log('Iniciando proceso de login');
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                console.log('Enviando petición...');
-                const response = await fetch('/auth/token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json'
-                    },
-                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-                    credentials: 'same-origin'
-                });
-
-                console.log('Respuesta recibida:', response.status);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Login exitoso, redirigiendo...');
-                    window.location.href = data.redirect_url;
-                } else {
-                    const errorData = await response.json();
-                    console.error('Error en login:', errorData);
-                    showError(errorData.detail || 'Error en el inicio de sesión');
-                }
-            } catch (error) {
-                console.error('Error de conexión:', error);
-                showError('Error de conexión con el servidor');
-            }
-        });
-    </script>
 </body>
 </html>

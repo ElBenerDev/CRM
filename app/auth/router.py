@@ -29,26 +29,32 @@ async def login_page(request: Request):
 
 @router.post("/token")
 async def login(
+    request: Request,
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    print("Iniciando proceso de login")
+    print(f"Recibiendo solicitud POST en /auth/token")
+    print(f"Datos recibidos - username: {form_data.username}")
+    
     try:
-        print(f"Intentando autenticar usuario: {form_data.username}")
         user = authenticate_user(db, form_data.username, form_data.password)
         
         if not user:
-            print("Autenticación fallida")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales incorrectas"
+            print("Autenticación fallida - Usuario no encontrado o contraseña incorrecta")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Credenciales inválidas"
+                },
+                status_code=401
             )
 
-        print("Usuario autenticado correctamente")
+        print(f"Usuario autenticado correctamente: {user.email}")
         access_token = create_access_token(data={"sub": user.email})
         
-        # Primero establecemos la cookie
+        response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -59,15 +65,18 @@ async def login(
             path="/"
         )
         
-        print("Cookie establecida")
-        # Retornamos un JSON con la URL de redirección
-        return {"access_token": access_token, "token_type": "bearer", "redirect_url": "/"}
+        print("Redirigiendo al dashboard")
+        return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+        print(f"Error en el proceso de login: {str(e)}")
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {
+                "request": request,
+                "error": f"Error del servidor: {str(e)}"
+            },
+            status_code=500
         )
         
 @router.post("/register", response_model=UserResponse)
