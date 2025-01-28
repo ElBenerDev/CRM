@@ -96,16 +96,6 @@ async def login(
             path="/"
         )
         
-        response.set_cookie(
-            key="access_token",
-            value=f"Bearer {access_token}",
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=1800,
-            path="/"
-        )
-        
         log_debug("✓ Cookie establecida")
         log_debug("✓ LOGIN EXITOSO")
         log_debug("="*50)
