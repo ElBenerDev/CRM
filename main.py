@@ -98,18 +98,27 @@ middleware = [
         SessionMiddleware,
         secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
         session_cookie="session",
-        max_age=1800,
         same_site="lax",
-        https_only=True
+        https_only=True,
+        max_age=1800
     ),
-    Middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
+    Middleware(CORSMiddleware, 
+        allow_origins=["*"], 
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"]
     ),
+    Middleware(AuthMiddleware),
+    Middleware(LoggingMiddleware),
+    Middleware(DebugMiddleware)
 ]
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="Sistema CRM para gestión dental",
+    version=settings.APP_VERSION,
+    middleware=middleware  # <- Aquí se pasan todos los middleware
+)
 
 # Inicialización de FastAPI
 app = FastAPI(
@@ -118,11 +127,6 @@ app = FastAPI(
     version=settings.APP_VERSION,
     middleware=middleware
 )
-
-# Agregar middleware adicional
-app.add_middleware(DebugMiddleware)
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(AuthMiddleware)
 
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
