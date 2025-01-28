@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from app.utils.db import get_db
@@ -14,7 +14,6 @@ from .utils import (
 from datetime import timedelta
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
-from fastapi.responses import JSONResponse
 from fastapi import Form
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -24,42 +23,16 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 @router.post("/token")
 async def login(
     request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
-    print(f"Método de la petición: {request.method}")
+    print(f"Email recibido: {username}")
     
     try:
-        # Log de headers
-        print("\nHeaders recibidos:")
-        for name, value in request.headers.items():
-            print(f"{name}: {value}")
-        
-        # Obtener y loguear el form data
-        form_data = await request.form()
-        print("\nForm data recibido:")
-        for key, value in form_data.items():
-            if key == 'password':
-                print(f"{key}: ********")
-            else:
-                print(f"{key}: {value}")
-        
-        username = form_data.get('username')
-        password = form_data.get('password')
-        
-        if not username or not password:
-            print("\nFaltan credenciales")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Por favor ingrese email y contraseña"
-                },
-                status_code=400
-            )
-
-        print(f"\nIntentando autenticar usuario: {username}")
+        # Intenta autenticar al usuario
         user = authenticate_user(db, username, password)
         
         if not user:
@@ -68,19 +41,20 @@ async def login(
                 "auth/login.html",
                 {
                     "request": request,
-                    "error": "Credenciales inválidas"
-                },
-                status_code=401
+                    "error": "Email o contraseña incorrectos"
+                }
             )
 
-        print(f"Usuario autenticado: {user.email}")
-        access_token = create_access_token(data={"sub": user.email})
-        
-        response = RedirectResponse(
-            url="/",
-            status_code=303
+        # Crear el token de acceso
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         
+        # Crear la respuesta de redirección
+        response = RedirectResponse(url="/", status_code=303)
+        
+        # Establecer la cookie con el token
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -91,26 +65,21 @@ async def login(
             path="/"
         )
         
-        print("Cookie establecida correctamente")
-        print("Redirigiendo al dashboard")
-        print("="*50)
+        print("Login exitoso - Redirigiendo al dashboard")
         return response
         
     except Exception as e:
-        print("\nError en login:")
-        print(str(e))
+        print(f"Error en login: {str(e)}")
         import traceback
-        print("\nTraceback:")
         print(traceback.format_exc())
-        print("="*50)
         return templates.TemplateResponse(
             "auth/login.html",
             {
                 "request": request,
                 "error": "Error del servidor, por favor intente más tarde"
-            },
-            status_code=500
+            }
         )
+
 @router.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse(
@@ -151,9 +120,6 @@ async def logout():
     response = RedirectResponse(url="/auth/login", status_code=302)
     response.delete_cookie(
         key="access_token",
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite="lax"
+        path="/"
     )
     return response

@@ -18,9 +18,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        return bcrypt.verify(plain_password, hashed_password)
+        print(f"Verificando contraseña...")
+        result = bcrypt.verify(plain_password, hashed_password)
+        if result:
+            print("✅ Contraseña verificada correctamente")
+        else:
+            print("❌ Contraseña no coincide")
+        return result
     except Exception as e:
-        print(f"Error verificando contraseña: {str(e)}")
+        print("❌ Error verificando contraseña:")
+        print(str(e))
         return False
 
 def get_password_hash(password: str) -> str:
@@ -49,26 +56,45 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     try:
-        print(f"\nIntentando autenticar usuario: {email}")
+        print("\n" + "="*50)
+        print("INICIO DE AUTENTICACIÓN")
+        print(f"Intentando autenticar usuario: {email}")
+        
+        # Verificar conexión a DB
+        print("\nVerificando conexión a base de datos...")
+        if not db:
+            print("❌ Error: No hay conexión a la base de datos")
+            return None
+        
+        # Buscar usuario
+        print("\nBuscando usuario en la base de datos...")
         user = db.query(User).filter(User.email == email).first()
         
         if not user:
-            print(f"Usuario no encontrado: {email}")
+            print(f"❌ Usuario no encontrado: {email}")
             return None
             
-        print("Usuario encontrado, verificando contraseña...")
+        print("✅ Usuario encontrado")
+        print(f"Email en DB: {user.email}")
         
+        # Verificar contraseña
+        print("\nVerificando contraseña...")
         if not verify_password(password, user.password):
-            print("Contraseña incorrecta")
+            print("❌ Contraseña incorrecta")
             return None
             
-        print("Autenticación exitosa")
+        print("✅ Contraseña correcta")
+        print("✅ Autenticación exitosa")
+        print("="*50)
         return user
         
     except Exception as e:
-        print(f"Error en authenticate_user: {str(e)}")
+        print("\n❌ Error en authenticate_user:")
+        print(str(e))
+        print("\nTraceback completo:")
         import traceback
         print(traceback.format_exc())
+        print("="*50)
         return None
 
 async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
