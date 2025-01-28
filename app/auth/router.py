@@ -12,47 +12,29 @@ from .utils import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from datetime import timedelta
-from fastapi.templating import Jinja2Templates
-from pathlib import Path
+from app.core.templates import templates  # Cambia esta línea
 from fastapi import Form
 
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 @router.post("/token")
 async def login(
     request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
+    print(f"Email recibido: {username}")
     
     try:
-        # Obtener form data
-        form = await request.form()
-        username = form.get('username')
-        password = form.get('password')
-        
-        print(f"\nDatos recibidos:")
-        print(f"Username: {username}")
-        print(f"Password: {'*' * len(password) if password else 'No recibida'}")
-        
-        if not username or not password:
-            print("\n❌ Faltan credenciales")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Por favor ingrese email y contraseña"
-                }
-            )
-
-        print("\nValidando credenciales...")
+        # Intenta autenticar al usuario
         user = authenticate_user(db, username, password)
         
         if not user:
-            print("\n❌ Autenticación fallida")
+            print("Autenticación fallida")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {

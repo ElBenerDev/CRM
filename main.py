@@ -74,6 +74,9 @@ from app.schemas.schemas import (
 
 # Servidor
 import uvicorn
+from app.core.templates import templates, BASE_DIR
+
+STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
 
 logging.basicConfig(
     level=logging.INFO,
