@@ -14,7 +14,8 @@
             {{ error }}
         </div>
         {% endif %}
-        <form method="POST" action="/auth/token">
+        <!-- El formulario debe tener exactamente esta estructura -->
+        <form method="POST" action="/auth/token" enctype="application/x-www-form-urlencoded">
             <div class="form-group">
                 <label for="username">Email:</label>
                 <input type="email" id="username" name="username" required>
@@ -23,8 +24,52 @@
                 <label for="password">Contraseña:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Iniciar Sesión</button>
+            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
         </form>
     </div>
+
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .error-message {
+            color: #dc3545;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            background-color: #f8d7da;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </body>
 </html>

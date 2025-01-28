@@ -26,14 +26,18 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    try:
-        print("Iniciando proceso de login")
-        print(f"Email recibido: {form_data.username}")
+    print("="*50)
+    print("Iniciando proceso de login")
+    print(f"Método de la petición: {request.method}")
+    print(f"Headers recibidos: {request.headers}")
+    print(f"Email recibido: {form_data.username}")
+    print("="*50)
 
+    try:
         user = authenticate_user(db, form_data.username, form_data.password)
         
         if not user:
-            print("Autenticación fallida")
+            print("Autenticación fallida - Usuario no encontrado o contraseña incorrecta")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {
@@ -42,11 +46,8 @@ async def login(
                 }
             )
 
-        print(f"Usuario autenticado: {user.email}")
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
+        print(f"Usuario autenticado correctamente: {user.email}")
+        access_token = create_access_token(data={"sub": user.email})
         
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
@@ -55,7 +56,7 @@ async def login(
             httponly=True,
             secure=True,
             samesite="lax",
-            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            max_age=1800,
             path="/"
         )
         
@@ -68,7 +69,7 @@ async def login(
             "auth/login.html",
             {
                 "request": request,
-                "error": "Error del servidor, por favor intente más tarde"
+                "error": f"Error del servidor: {str(e)}"
             }
         )
 
