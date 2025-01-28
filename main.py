@@ -421,6 +421,8 @@ async def appointments_page(
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 401 or exc.status_code == 403:
         return RedirectResponse(url="/auth/login", status_code=302)
+    
+    # Para otras excepciones, usa la nueva plantilla de error
     return templates.TemplateResponse(
         "error.html",
         {
