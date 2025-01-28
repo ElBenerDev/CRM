@@ -36,105 +36,82 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    log_debug("="*50)
-    log_debug("🔐 INICIO DEL PROCESO DE LOGIN")
-    log_debug(f"📧 Email recibido: {username}")
-    log_debug(f"🌐 URL: {request.url}")
-    log_debug(f"📍 Method: {request.method}")
+    from .utils import log_auth  # Importar la función de logging
+    
+    log_auth("\n" + "="*50)
+    log_auth("🔐 INICIO DEL PROCESO DE LOGIN")
+    log_auth(f"📧 Email recibido: {username}")
     
     try:
         # Verificar conexión a DB
-        log_debug("📊 Verificando conexión a base de datos...")
+        log_auth("📊 Verificando conexión a base de datos...")
         try:
             db.execute(text("SELECT 1"))
-            log_debug("✅ Conexión a DB verificada")
+            log_auth("✅ Conexión a DB verificada")
         except Exception as e:
-            log_debug(f"❌ Error de conexión a DB: {str(e)}")
-            log_debug(f"Traceback: {traceback.format_exc()}")
+            log_auth(f"❌ Error de conexión a DB: {str(e)}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Error de conexión a la base de datos"},
+                {"request": request, "error": "Error de conexión"},
                 status_code=500
             )
 
         # Buscar usuario
-        log_debug("🔍 Buscando usuario en la base de datos...")
+        log_auth("🔍 Buscando usuario en la base de datos...")
         user = db.query(User).filter(User.email == username).first()
         
         if not user:
-            log_debug("❌ Usuario no encontrado en la base de datos")
+            log_auth("❌ Usuario no encontrado")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"},
                 status_code=401
             )
         
-        log_debug(f"✅ Usuario encontrado: {user.email}")
-        log_debug(f"👤 Nombre del usuario: {user.name}")
+        log_auth(f"✅ Usuario encontrado: {user.email}")
         
         # Verificar contraseña
-        log_debug("🔒 Verificando contraseña...")
         if not verify_password(password, user.password):
-            log_debug("❌ Contraseña incorrecta")
+            log_auth("❌ Contraseña incorrecta")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"},
                 status_code=401
             )
         
-        log_debug("✅ Contraseña verificada correctamente")
+        log_auth("✅ Autenticación exitosa")
         
         # Crear token
-        log_debug("🎟️ Generando token de acceso...")
-        try:
-            access_token = create_access_token(
-                data={"sub": user.email},
-                expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            )
-            log_debug("✅ Token generado exitosamente")
-        except Exception as token_error:
-            log_debug(f"❌ Error generando token: {str(token_error)}")
-            log_debug(f"Traceback: {traceback.format_exc()}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Error generando credenciales"},
-                status_code=500
-            )
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
         
-        # Crear y configurar respuesta
-        log_debug("📝 Preparando respuesta...")
-        try:
-            response = RedirectResponse(url="/", status_code=303)
-            response.set_cookie(
-                key="access_token",
-                value=f"Bearer {access_token}",
-                httponly=True,
-                secure=True,
-                samesite="lax",
-                max_age=1800,
-                path="/"
-            )
-            log_debug("✅ Cookie configurada correctamente")
-            log_debug("✅ Login exitoso - Redirigiendo al dashboard")
-            log_debug("="*50)
-            return response
-        except Exception as response_error:
-            log_debug(f"❌ Error configurando respuesta: {str(response_error)}")
-            log_debug(f"Traceback: {traceback.format_exc()}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Error preparando respuesta"},
-                status_code=500
-            )
+        # Crear respuesta
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=1800,
+            path="/"
+        )
+        
+        log_auth("✅ Cookie establecida correctamente")
+        log_auth("✅ Login exitoso - Redirigiendo al dashboard")
+        log_auth("="*50)
+        return response
         
     except Exception as e:
-        log_debug("\n❌ ERROR GENERAL EN EL PROCESO DE LOGIN:")
-        log_debug(f"Error: {str(e)}")
-        log_debug("Traceback completo:")
-        log_debug(traceback.format_exc())
+        log_auth("\n❌ ERROR EN LOGIN:")
+        log_auth(str(e))
+        import traceback
+        log_auth(traceback.format_exc())
         return templates.TemplateResponse(
             "auth/login.html",
-            {"request": request, "error": "Error interno del servidor"},
+            {"request": request, "error": "Error del servidor"},
             status_code=500
         )
 

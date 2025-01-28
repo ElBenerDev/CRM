@@ -1,126 +1,115 @@
-from passlib.hash import bcrypt
-from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.models.models import User
-from app.utils.db import get_db
+import sys
 
-# Configuración de Seguridad
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+from app.utils.db import get_db
+from app.models.models import User
 
 # Configuración de JWT
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"  # Cambiar en producción
+SECRET_KEY = "tu_clave_secreta_aqui"  # Cambia esto por una clave segura
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Configuración de password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def log_auth(message: str):
+    """Función auxiliar para logging de autenticación"""
+    print(f"[AUTH] {message}")
+    sys.stdout.flush()
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifica si la contraseña coincide con el hash"""
     try:
-        print(f"Verificando contraseña...")
-        result = bcrypt.verify(plain_password, hashed_password)
-        if result:
-            print("✅ Contraseña verificada correctamente")
-        else:
-            print("❌ Contraseña no coincide")
+        log_auth(f"Verificando contraseña...")
+        result = pwd_context.verify(plain_password, hashed_password)
+        log_auth(f"Resultado verificación: {'✅ Correcto' if result else '❌ Incorrecto'}")
         return result
     except Exception as e:
-        print("❌ Error verificando contraseña:")
-        print(str(e))
+        log_auth(f"❌ Error verificando contraseña: {str(e)}")
         return False
 
 def get_password_hash(password: str) -> str:
-    try:
-        return bcrypt.hash(password)
-    except Exception as e:
-        print(f"Error hasheando contraseña: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Error al procesar la contraseña"
-        )
+    """Genera el hash de una contraseña"""
+    return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    """Crea un token JWT"""
     try:
+        log_auth("🎟️ Generando token de acceso...")
+        to_encode = data.copy()
+        
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=15)
+            
+        to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        log_auth("✅ Token generado correctamente")
         return encoded_jwt
     except Exception as e:
-        print(f"Error creando token: {str(e)}")
+        log_auth(f"❌ Error generando token: {str(e)}")
+        raise
+
+def decode_token(token: str) -> dict:
+    """Decodifica un token JWT"""
+    try:
+        log_auth("🔍 Decodificando token...")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        log_auth("✅ Token decodificado correctamente")
+        return payload
+    except JWTError as e:
+        log_auth(f"❌ Error decodificando token: {str(e)}")
         raise HTTPException(
-            status_code=500,
-            detail="Error al crear el token de acceso"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido"
         )
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+async def get_current_user(token: str = None, db: Session = Depends(get_db)) -> User:
+    """Obtiene el usuario actual basado en el token JWT"""
     try:
-        print("\n" + "="*50)
-        print("INICIO DE AUTENTICACIÓN")
-        print(f"Intentando autenticar usuario: {email}")
+        log_auth("👤 Obteniendo usuario actual...")
         
-        # Verificar conexión a DB
-        print("\nVerificando conexión a base de datos...")
-        if not db:
-            print("❌ Error: No hay conexión a la base de datos")
-            return None
-        
-        # Buscar usuario
-        print("\nBuscando usuario en la base de datos...")
-        user = db.query(User).filter(User.email == email).first()
-        
-        if not user:
-            print(f"❌ Usuario no encontrado: {email}")
-            return None
+        if not token:
+            log_auth("❌ No se proporcionó token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No autenticado"
+            )
             
-        print("✅ Usuario encontrado")
-        print(f"Email en DB: {user.email}")
-        
-        # Verificar contraseña
-        print("\nVerificando contraseña...")
-        if not verify_password(password, user.password):
-            print("❌ Contraseña incorrecta")
-            return None
+        if token.startswith("Bearer "):
+            token = token.split(" ")[1]
             
-        print("✅ Contraseña correcta")
-        print("✅ Autenticación exitosa")
-        print("="*50)
-        return user
-        
-    except Exception as e:
-        print("\n❌ Error en authenticate_user:")
-        print(str(e))
-        print("\nTraceback completo:")
-        import traceback
-        print(traceback.format_exc())
-        print("="*50)
-        return None
-
-async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode_token(token)
         email: str = payload.get("sub")
+        
         if email is None:
-            raise credentials_exception
-    except JWTError as e:
-        print(f"Error decodificando token: {str(e)}")
-        raise credentials_exception
-    except Exception as e:
-        print(f"Error inesperado: {str(e)}")
-        raise credentials_exception
-
-    try:
+            log_auth("❌ Token no contiene email")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido"
+            )
+            
         user = db.query(User).filter(User.email == email).first()
-        if user is None:
-            raise credentials_exception
+        if not user:
+            log_auth("❌ Usuario no encontrado en DB")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuario no encontrado"
+            )
+            
+        log_auth(f"✅ Usuario autenticado: {user.email}")
         return user
+        
     except Exception as e:
-        print(f"Error consultando usuario: {str(e)}")
-        raise credentials_exception
+        log_auth(f"❌ Error en autenticación: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Error de autenticación"
+        )
