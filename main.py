@@ -1,14 +1,12 @@
-# Imports estándar de Python
 from datetime import datetime, timedelta, timezone
 import os
 from typing import Optional
 import logging
 from pathlib import Path
 import traceback
+from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
-from app.middleware.auth import AuthMiddleware
-
-# FastAPI y Starlette
+from starlette.middleware.cors import CORSMiddleware
 from fastapi import (
     FastAPI, 
     Request, 
@@ -17,18 +15,15 @@ from fastapi import (
     status, 
     Form
 )
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-# SQLAlchemy
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-# JWT y Autenticación
+# Importaciones locales
 from app.auth.utils import (
     SECRET_KEY, 
     ALGORITHM, 
@@ -36,39 +31,15 @@ from app.auth.utils import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.auth.router import router as auth_router
-
-# Configuración y utilidades locales
 from config.settings import settings
-from app.utils.db import (
-    get_db, 
-    engine, 
-    Base, 
-    verify_db_connection
-)
+from app.utils.db import get_db, engine, Base, verify_db_connection
 from app.utils.logger import logger
-
-# Modelos
-from app.models.models import (
-    Patient, 
-    Appointment, 
-    Lead, 
-    User
-)
-
-# Schemas
-from app.schemas.schemas import (
-    PatientCreate, 
-    PatientResponse,
-    LeadCreate, 
-    LeadResponse
-)
-
-# Middleware
+from app.models.models import Patient, Appointment, Lead, User
+from app.schemas.schemas import PatientCreate, PatientResponse, LeadCreate, LeadResponse
 from app.middleware.auth import AuthMiddleware
 from app.middleware.debug import DebugMiddleware
 from app.middleware.logging import LoggingMiddleware
 
-# Servidor
 import uvicorn
 
 # Configuración de logging
@@ -79,20 +50,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuración de directorios
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
-STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = BASE_DIR / "app" / "templates"
+STATIC_DIR = BASE_DIR / "app" / "static"
 
-# Funciones auxiliares
+# Asegurar que existan los directorios necesarios
+for dir_path in [
+    STATIC_DIR / "css" / "errors",
+    STATIC_DIR / "js",
+    STATIC_DIR / "img",
+    TEMPLATES_DIR / "errors",
+]:
+    dir_path.mkdir(parents=True, exist_ok=True)
+    
 async def get_current_user_from_request(request: Request, db: Session) -> Optional[User]:
     try:
         token = request.cookies.get("access_token")
         if not token:
             return None
-            
         if token.startswith("Bearer "):
             token = token.split(" ")[1]
-            
         return await get_current_user(db=db, token=token)
     except:
         return None
@@ -112,64 +89,47 @@ def url_for(request: Request, name: str, **params):
     return request.url_for(name, **params)
 
 # Configuración de templates
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["url_for"] = url_for
 
-
+# Configuración de middleware
+middleware = [
+    Middleware(
+        SessionMiddleware,
+        secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
+        session_cookie="session",
+        max_age=1800,
+        same_site="lax",
+        https_only=True
+    ),
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"]
+    ),
+]
 
 # Inicialización de FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
     description="Sistema CRM para gestión dental",
     version=settings.APP_VERSION,
+    middleware=middleware
 )
 
-# Primero el SessionMiddleware
-middleware_config = [
-    (SessionMiddleware, {
-        "secret_key": "8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
-        "session_cookie": "session",
-        "max_age": 1800,
-        "same_site": "lax",
-        "https_only": True
-    }),
-    (CORSMiddleware, {
-        "allow_origins": ["*"],
-        "allow_credentials": True,
-        "allow_methods": ["*"],
-        "allow_headers": ["*"],
-    }),
-    (DebugMiddleware, {}),
-    (LoggingMiddleware, {}),
-    (AuthMiddleware, {})
-]
-
-
-for middleware_class, config in middleware_config:
-    app.add_middleware(middleware_class, **config)
-    
-# Luego los demás middlewares
+# Agregar middleware adicional
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
 
-static_dirs = {
-    "css": os.path.join(STATIC_DIR, "css"),
-    "js": os.path.join(STATIC_DIR, "js"),
-    "img": os.path.join(STATIC_DIR, "img")
-}
+# Montar archivos estáticos
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-for dir_name in ["css", "js", "img"]:
-    dir_path = os.path.join(STATIC_DIR, dir_name)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-# Routers
+# Incluir routers
 app.include_router(auth_router)
 
-# Middleware para logging
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info("\n" + "="*50)
@@ -178,7 +138,6 @@ async def log_requests(request: Request, call_next):
     logger.info(f"📤 Respuesta: {response.status_code}")
     return response
 
-# Eventos de la aplicación
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Aplicación iniciada")
@@ -189,10 +148,10 @@ async def startup_event():
 # Manejadores de excepciones
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    if exc.status_code == 405:  # Method Not Allowed
+    if exc.status_code == 405:
         return RedirectResponse(url="/auth/login", status_code=303)
     return templates.TemplateResponse(
-        "error.html",
+        "errors/error.html",
         {
             "request": request,
             "error_message": str(exc.detail),
@@ -206,15 +165,11 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
     if exc.status_code in [401, 403]:
         return RedirectResponse(url="/auth/login", status_code=302)
     
-    # Verifica si es una solicitud de archivo estático
-    if request.url.path.startswith(('/css/', '/js/', '/img/', '/static/')):
-        return HTMLResponse(
-            content="File not found",
-            status_code=404
-        )
+    if request.url.path.startswith(('/static/',)):
+        return HTMLResponse(content="File not found", status_code=404)
     
     return templates.TemplateResponse(
-        "error.html",
+        "errors/error.html",
         {
             "request": request,
             "error_message": str(exc.detail),
@@ -222,13 +177,10 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
         },
         status_code=exc.status_code
     )
-    
+
 @app.exception_handler(Exception)
-async def starlette_exception_handler(request: Request, exc: Exception):
-    # Determinar si estamos en una ruta de autenticación
-    is_auth_route = request.url.path.startswith("/auth")
-    
-    template_name = "auth/error.html" if is_auth_route else "error.html"
+async def generic_exception_handler(request: Request, exc: Exception):
+    template_name = "errors/error.html"
     status_code = 500
     error_message = str(exc)
 
@@ -236,8 +188,8 @@ async def starlette_exception_handler(request: Request, exc: Exception):
         status_code = exc.status_code
         error_message = exc.detail
 
-    logger.debug(f"Error {status_code}: {error_message}")
-    logger.debug(traceback.format_exc())
+    logger.error(f"Error {status_code}: {error_message}")
+    logger.error(traceback.format_exc())
 
     return templates.TemplateResponse(
         template_name,
@@ -248,8 +200,6 @@ async def starlette_exception_handler(request: Request, exc: Exception):
         },
         status_code=status_code
     )
-    
-# Rutas principales
 @app.get("/", response_class=HTMLResponse)
 async def home(
     request: Request,
@@ -307,7 +257,7 @@ async def home(
     except Exception as e:
         logger.error(f"Error en home: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
-
+    
 @app.post("/api/patients/", response_model=PatientResponse)
 async def create_patient(
     patient: PatientCreate, 
@@ -329,7 +279,6 @@ async def create_patient(
         db.add(new_patient)
         db.commit()
         db.refresh(new_patient)
-        
         return new_patient
         
     except Exception as e:
@@ -414,13 +363,12 @@ async def create_lead(
         db.add(new_lead)
         db.commit()
         db.refresh(new_lead)
-        
         return new_lead
         
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 @app.get("/settings", response_class=HTMLResponse)
 @app.head("/settings")
 async def settings_page(
@@ -478,7 +426,7 @@ async def appointments_page(
     except Exception as e:
         logger.error(f"Error en appointments_page: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
-
+    
 @app.get("/auth/logout")
 async def logout():
     response = RedirectResponse(url="/auth/login", status_code=302)
@@ -490,9 +438,9 @@ async def logout():
     )
     return response
 
-# Inicio de la aplicación
+# Configuración de inicio de la aplicación
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
