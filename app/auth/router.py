@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import timedelta
+from datetime import timedelta, datetime
 import logging
 import sys
 import traceback
@@ -31,98 +31,86 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    log_auth("\n" + "="*50)
-    log_auth("🔐 INICIO DEL PROCESO DE LOGIN")
-    log_auth(f"📧 Email recibido: {username}")
+    # Logs iniciales
+    print("\n" + "="*50)
+    print(f"🔄 INICIO DE LOGIN - {datetime.now()}")
+    print(f"📧 Usuario intentando login: {username}")
     
     try:
-        # Verificar conexión a DB
-        log_auth("📊 Verificando conexión a base de datos...")
+        # 1. Verificar conexión a DB
+        print("1️⃣ Verificando conexión a base de datos...")
         try:
             db.execute(text("SELECT 1"))
-            log_auth("✅ Conexión a DB verificada")
+            print("✅ Conexión a DB verificada")
         except Exception as e:
-            log_auth(f"❌ Error de conexión a DB: {str(e)}")
+            print(f"❌ Error de conexión a DB: {str(e)}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Error de conexión"},
+                {"request": request, "error": "Error de conexión a la base de datos"},
                 status_code=500
             )
 
-        # Buscar usuario
-        log_auth("🔍 Buscando usuario...")
+        # 2. Buscar usuario
+        print("2️⃣ Buscando usuario en la base de datos...")
         user = db.query(User).filter(User.email == username).first()
         
         if not user:
-            log_auth("❌ Usuario no encontrado")
+            print(f"❌ Usuario no encontrado: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"},
                 status_code=401
             )
         
-        log_auth(f"✅ Usuario encontrado: {user.email}")
-        log_auth(f"👤 Nombre: {user.name}")
+        print(f"✅ Usuario encontrado: {user.email}")
         
-        # Verificar contraseña
-        log_auth("🔒 Verificando contraseña...")
-        if not verify_password(password, user.password):
-            log_auth("❌ Contraseña incorrecta")
+        # 3. Verificar contraseña
+        print("3️⃣ Verificando contraseña...")
+        valid_password = verify_password(password, user.password)
+        print(f"Resultado verificación: {'✅ Correcta' if valid_password else '❌ Incorrecta'}")
+        
+        if not valid_password:
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"},
                 status_code=401
             )
+
+        # 4. Generar token
+        print("4️⃣ Generando token...")
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        print("✅ Token generado correctamente")
+
+        # 5. Crear respuesta
+        print("5️⃣ Preparando respuesta...")
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=1800,
+            path="/"
+        )
         
-        log_auth("✅ Contraseña verificada correctamente")
+        print("✅ Cookie establecida correctamente")
+        print("✅ Login exitoso - Redirigiendo al dashboard")
+        print("="*50)
         
-        # Crear token
-        log_auth("🎟️ Generando token...")
-        try:
-            access_token = create_access_token(
-                data={"sub": user.email},
-                expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            )
-            log_auth("✅ Token generado")
-        except Exception as e:
-            log_auth(f"❌ Error generando token: {str(e)}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Error del servidor"},
-                status_code=500
-            )
-        
-        # Crear respuesta
-        try:
-            response = RedirectResponse(url="/", status_code=303)
-            response.set_cookie(
-                key="access_token",
-                value=f"Bearer {access_token}",
-                httponly=True,
-                secure=True,
-                samesite="lax",
-                max_age=1800,
-                path="/"
-            )
-            log_auth("✅ Cookie establecida correctamente")
-            log_auth("✅ Login exitoso - Redirigiendo al dashboard")
-            log_auth("="*50)
-            return response
-        except Exception as e:
-            log_auth(f"❌ Error estableciendo cookie: {str(e)}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Error del servidor"},
-                status_code=500
-            )
+        return response
         
     except Exception as e:
-        log_auth("\n❌ ERROR EN LOGIN:")
-        log_auth(str(e))
-        log_auth(traceback.format_exc())
+        print("\n❌ ERROR EN PROCESO DE LOGIN:")
+        print(f"Error: {str(e)}")
+        print("Traceback completo:")
+        traceback.print_exc()
         return templates.TemplateResponse(
             "auth/login.html",
-            {"request": request, "error": "Error del servidor"},
+            {"request": request, "error": "Error interno del servidor"},
             status_code=500
         )
 
