@@ -29,6 +29,7 @@ async def login_page(request: Request):
 
 @router.post("/token")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
