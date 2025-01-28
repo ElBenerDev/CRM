@@ -125,15 +125,29 @@ app = FastAPI(
 )
 
 # Primero el SessionMiddleware
-app.add_middleware(
-    SessionMiddleware, 
-    secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
-    session_cookie="session",
-    max_age=1800,  # 30 minutos
-    same_site="lax",
-    https_only=True
-)
+middleware_config = [
+    (SessionMiddleware, {
+        "secret_key": "8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
+        "session_cookie": "session",
+        "max_age": 1800,
+        "same_site": "lax",
+        "https_only": True
+    }),
+    (CORSMiddleware, {
+        "allow_origins": ["*"],
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }),
+    (DebugMiddleware, {}),
+    (LoggingMiddleware, {}),
+    (AuthMiddleware, {})
+]
 
+
+for middleware_class, config in middleware_config:
+    app.add_middleware(middleware_class, **config)
+    
 # Luego los demás middlewares
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)

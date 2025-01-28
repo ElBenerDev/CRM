@@ -1,0 +1,37 @@
+.error-container {
+    max-width: 600px;
+    margin: 100px auto;
+    padding: 40px;
+    text-align: center;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.error-message {
+    margin: 20px 0;
+    padding: 15px;
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 4px;
+    color: #c53030;
+}
+
+.back-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #4299e1;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.back-button:hover {
+    background: #3182ce;
+}
+
+h1 {
+    color: #2d3748;
+    margin-bottom: 20px;
+}
