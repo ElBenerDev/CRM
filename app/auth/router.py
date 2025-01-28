@@ -18,6 +18,10 @@ def log_debug(message: str):
     print(f"[DEBUG][{datetime.now()}] {message}", file=sys.stdout)
     sys.stdout.flush()
 
+@router.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse("auth/login.html", {"request": request})
+
 @router.post("/token")
 async def login(
     request: Request,
