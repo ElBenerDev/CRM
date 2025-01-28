@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -29,32 +29,26 @@ async def login_page(request: Request):
 
 @router.post("/token")
 async def login(
-    request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    print("Recibiendo solicitud de login")
-    print(f"Username recibido: {form_data.username}")
-    
+    print("Iniciando proceso de login")
     try:
+        print(f"Intentando autenticar usuario: {form_data.username}")
         user = authenticate_user(db, form_data.username, form_data.password)
+        
         if not user:
             print("Autenticación fallida")
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Credenciales inválidas"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales incorrectas"
             )
-        
+
         print("Usuario autenticado correctamente")
         access_token = create_access_token(data={"sub": user.email})
         
-        # Crear respuesta de redirección
-        response = RedirectResponse(
-            url="/",
-            status_code=302
-        )
-        
-        # Establecer cookie
+        # Primero establecemos la cookie
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -65,14 +59,15 @@ async def login(
             path="/"
         )
         
-        print("Redirigiendo al dashboard")
-        return response
+        print("Cookie establecida")
+        # Retornamos un JSON con la URL de redirección
+        return {"access_token": access_token, "token_type": "bearer", "redirect_url": "/"}
         
     except Exception as e:
-        print(f"Error en el proceso de login: {str(e)}")
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Error del servidor: {str(e)}"}
+        print(f"Error en login: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
         
 @router.post("/register", response_model=UserResponse)

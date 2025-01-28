@@ -72,17 +72,18 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if token.startswith("Bearer "):
                 token = token.split(" ")[1]
 
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            email = payload.get("sub")
-            
-            if not email:
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                if not payload.get("sub"):
+                    raise HTTPException(status_code=401)
+            except JWTError:
                 return RedirectResponse(url="/auth/login", status_code=302)
 
             response = await call_next(request)
             return response
             
         except Exception as e:
-            print(f"❌ Auth Error: {str(e)}")
+            print(f"Error en AuthMiddleware: {str(e)}")
             return RedirectResponse(url="/auth/login", status_code=302)
 
 class DebugMiddleware(BaseHTTPMiddleware):
@@ -136,6 +137,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 app.add_middleware(AuthMiddleware)
 app.add_middleware(DebugMiddleware)

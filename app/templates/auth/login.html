@@ -9,12 +9,8 @@
 <body>
     <div class="login-container">
         <h1>Iniciar Sesión</h1>
-        {% if error %}
-        <div class="error-message">
-            {{ error }}
-        </div>
-        {% endif %}
-        <form id="loginForm" method="POST" action="/auth/token">
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <form id="loginForm">
             <div class="form-group">
                 <label for="username">Email:</label>
                 <input type="email" id="username" name="username" required>
@@ -28,68 +24,45 @@
     </div>
 
     <script>
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Iniciando envío del formulario');
+            console.log('Iniciando proceso de login');
 
-            const formData = new URLSearchParams();
-            formData.append('username', document.getElementById('username').value);
-            formData.append('password', document.getElementById('password').value);
-            
-            console.log('Datos a enviar:', {
-                username: document.getElementById('username').value,
-                password: '***'
-            });
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
 
             try {
+                console.log('Enviando petición...');
                 const response = await fetch('/auth/token', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
                     },
-                    body: formData.toString(),
-                    redirect: 'follow'
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+                    credentials: 'same-origin'
                 });
 
-                console.log('Status:', response.status);
-                console.log('Headers:', [...response.headers.entries()]);
-
-                if (response.redirected) {
-                    console.log('Redirigiendo a:', response.url);
-                    window.location.href = response.url;
-                    return;
-                }
+                console.log('Respuesta recibida:', response.status);
 
                 if (response.ok) {
-                    console.log('Login exitoso');
-                    window.location.href = '/';
-                    return;
-                }
-
-                // Manejo de error
-                let errorMessage;
-                try {
                     const data = await response.json();
-                    errorMessage = data.detail || 'Error en el inicio de sesión';
-                } catch {
-                    errorMessage = 'Error en el inicio de sesión';
+                    console.log('Login exitoso, redirigiendo...');
+                    window.location.href = data.redirect_url;
+                } else {
+                    const errorData = await response.json();
+                    console.error('Error en login:', errorData);
+                    showError(errorData.detail || 'Error en el inicio de sesión');
                 }
-
-                const errorDiv = document.querySelector('.error-message') || document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = errorMessage;
-                if (!document.querySelector('.error-message')) {
-                    document.querySelector('h1').after(errorDiv);
-                }
-
             } catch (error) {
-                console.error('Error en la petición:', error);
-                const errorDiv = document.querySelector('.error-message') || document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = 'Error de conexión';
-                if (!document.querySelector('.error-message')) {
-                    document.querySelector('h1').after(errorDiv);
-                }
+                console.error('Error de conexión:', error);
+                showError('Error de conexión con el servidor');
             }
         });
     </script>
