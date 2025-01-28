@@ -85,6 +85,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
 
+def format_date(date):
+    if date is None:
+        return datetime.utcnow().strftime('%d/%m/%Y')
+    return date.strftime('%d/%m/%Y')
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.filters["format_date"] = format_date
 # Middlewares
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -140,22 +147,37 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
         
         # Log request
-        print(f"\n🔄 Request: {request.method} {request.url}")
+        print(f"\n{'='*50}")
+        print(f"🔄 Request: {request.method} {request.url}")
+        
+        # Log headers
+        print("\nHeaders:")
+        for name, value in request.headers.items():
+            print(f"{name}: {value}")
+        
+        # Log body for POST/PUT requests
         if request.method in ["POST", "PUT"]:
             try:
                 body = await request.body()
-                if body:
-                    print(f"📝 Request Body: {body.decode()}")
+                body_str = body.decode()
+                print(f"\nRequest Body: {body_str}")
+                # Recreate the request with the same body
+                request._body = body
             except Exception as e:
                 print(f"❌ Error reading request body: {str(e)}")
 
-        response = await call_next(request)
-        
-        # Log response
-        process_time = time.time() - start_time
-        print(f"✅ Response: Status {response.status_code} in {process_time:.2f}s")
-        
-        return response
+        try:
+            response = await call_next(request)
+            process_time = time.time() - start_time
+            
+            print(f"\nResponse Status: {response.status_code}")
+            print(f"Process Time: {process_time:.2f}s")
+            print(f"{'='*50}\n")
+            
+            return response
+        except Exception as e:
+            print(f"❌ Error in request processing: {str(e)}")
+            raise
 
 # Inicialización de FastAPI
 app = FastAPI(
@@ -173,8 +195,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(AuthMiddleware)
 app.add_middleware(DebugMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(AuthMiddleware)
 templates = Jinja2Templates(directory="app/templates")
 # Routers
 app.include_router(auth_router)
@@ -231,9 +254,7 @@ async def get_current_user_from_request(request: Request, db: Session) -> Option
     except:
         return None
 
-# Templates
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
-templates.env.filters["format_date"] = format_date
+
 
 # Rutas principales
 @app.get("/", response_class=HTMLResponse)
