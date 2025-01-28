@@ -14,7 +14,7 @@
             {{ error }}
         </div>
         {% endif %}
-        <form id="loginForm" method="POST" action="/auth/token">
+        <form id="loginForm" method="POST" action="/auth/token" enctype="application/x-www-form-urlencoded">
             <div class="form-group">
                 <label for="username">Email:</label>
                 <input type="email" id="username" name="username" required>
@@ -28,10 +28,47 @@
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            console.log('Formulario enviado');
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevenir el envío normal del formulario
+            
+            console.log('Iniciando envío del formulario');
             const formData = new FormData(this);
-            console.log('Email:', formData.get('username'));
+            
+            try {
+                const response = await fetch('/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(formData),
+                    credentials: 'same-origin'
+                });
+
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    const data = await response.json();
+                    console.log('Respuesta:', data);
+                    window.location.href = '/';
+                } else {
+                    const errorData = await response.text();
+                    console.error('Error:', errorData);
+                    // Mostrar error en la UI
+                    const errorDiv = document.querySelector('.error-message') || document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = 'Error en el inicio de sesión';
+                    const form = document.getElementById('loginForm');
+                    form.parentNode.insertBefore(errorDiv, form);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Mostrar error en la UI
+                const errorDiv = document.querySelector('.error-message') || document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = 'Error en el servidor';
+                const form = document.getElementById('loginForm');
+                form.parentNode.insertBefore(errorDiv, form);
+            }
         });
     </script>
 
