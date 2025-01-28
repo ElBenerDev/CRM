@@ -143,6 +143,7 @@ for dir_name, dir_path in static_dirs.items():
         os.makedirs(dir_path)
     app.mount(f"/{dir_name}", StaticFiles(directory=dir_path), name=dir_name)
 
+# También mantener el montaje general de /static por si acaso
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Routers
