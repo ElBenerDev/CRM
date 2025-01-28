@@ -30,27 +30,29 @@
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Formulario enviado');
-            
-            try {
-                const formData = new FormData(e.target);
-                const data = {
-                    username: formData.get('username'),
-                    password: formData.get('password')
-                };
-                console.log('Datos del formulario:', data);
+            console.log('Iniciando envío del formulario');
 
+            const formData = new URLSearchParams();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('password', document.getElementById('password').value);
+            
+            console.log('Datos a enviar:', {
+                username: document.getElementById('username').value,
+                password: '***'
+            });
+
+            try {
                 const response = await fetch('/auth/token', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json'
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(data).toString(),
-                    credentials: 'include'
+                    body: formData.toString(),
+                    redirect: 'follow'
                 });
 
-                console.log('Respuesta:', response.status);
+                console.log('Status:', response.status);
+                console.log('Headers:', [...response.headers.entries()]);
 
                 if (response.redirected) {
                     console.log('Redirigiendo a:', response.url);
@@ -61,28 +63,30 @@
                 if (response.ok) {
                     console.log('Login exitoso');
                     window.location.href = '/';
-                } else {
-                    console.log('Error en login');
-                    let errorMessage = 'Error en el inicio de sesión';
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.detail || errorMessage;
-                    } catch (error) {
-                        console.error('Error parsing error response:', error);
-                    }
-                    
-                    const errorDiv = document.querySelector('.error-message') || document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    errorDiv.textContent = errorMessage;
-                    if (!document.querySelector('.error-message')) {
-                        document.querySelector('h1').after(errorDiv);
-                    }
+                    return;
                 }
+
+                // Manejo de error
+                let errorMessage;
+                try {
+                    const data = await response.json();
+                    errorMessage = data.detail || 'Error en el inicio de sesión';
+                } catch {
+                    errorMessage = 'Error en el inicio de sesión';
+                }
+
+                const errorDiv = document.querySelector('.error-message') || document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = errorMessage;
+                if (!document.querySelector('.error-message')) {
+                    document.querySelector('h1').after(errorDiv);
+                }
+
             } catch (error) {
                 console.error('Error en la petición:', error);
                 const errorDiv = document.querySelector('.error-message') || document.createElement('div');
                 errorDiv.className = 'error-message';
-                errorDiv.textContent = 'Error en la conexión';
+                errorDiv.textContent = 'Error de conexión';
                 if (!document.querySelector('.error-message')) {
                     document.querySelector('h1').after(errorDiv);
                 }

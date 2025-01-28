@@ -33,36 +33,46 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    print(f"Intento de login para: {form_data.username}")  # Debug log
+    print("Recibiendo solicitud de login")
+    print(f"Username recibido: {form_data.username}")
     
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
         if not user:
-            print(f"Autenticación fallida para: {form_data.username}")  # Debug log
+            print("Autenticación fallida")
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Credenciales inválidas"}
             )
         
-        print(f"Usuario autenticado: {user.email}")  # Debug log
+        print("Usuario autenticado correctamente")
         access_token = create_access_token(data={"sub": user.email})
         
-        response = RedirectResponse(url="/", status_code=302)
+        # Crear respuesta de redirección
+        response = RedirectResponse(
+            url="/",
+            status_code=302
+        )
+        
+        # Establecer cookie
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
             secure=True,
             samesite="lax",
-            max_age=1800
+            max_age=1800,
+            path="/"
         )
+        
+        print("Redirigiendo al dashboard")
         return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")  # Debug log
+        print(f"Error en el proceso de login: {str(e)}")
         return JSONResponse(
             status_code=500,
-            content={"detail": "Error en el servidor"}
+            content={"detail": f"Error del servidor: {str(e)}"}
         )
         
 @router.post("/register", response_model=UserResponse)
