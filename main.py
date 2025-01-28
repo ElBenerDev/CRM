@@ -154,6 +154,23 @@ for dir_name in ["css", "js", "img"]:
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("\n" + "="*50)
+    logger.info(f"📝 Nueva solicitud: {request.method} {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"📤 Respuesta enviada: {response.status_code}")
+    return response
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Aplicación iniciada")
+    logger.info(f"🌐 Ambiente: {settings.ENVIRONMENT}")
+    logger.info(f"📊 Debug: {settings.DEBUG}")
+
+
+
 # Manejadores de excepciones
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):

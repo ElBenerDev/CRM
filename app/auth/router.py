@@ -16,6 +16,7 @@ from .utils import (
 from datetime import timedelta
 from app.core.templates import templates  # Cambia esta línea
 from fastapi import Form
+from app.utils.logging_config import logger
 
 
 import logging
@@ -45,6 +46,7 @@ async def log_requests(request: Request, call_next):
     logger.info(f"Response Status: {response.status_code}")
     return response
 
+
 @router.post("/token")
 async def login(
     request: Request,
@@ -52,7 +54,7 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    logger.info("="*50)
+    logger.info("\n" + "="*50)
     logger.info("🔐 INICIO DEL PROCESO DE LOGIN")
     logger.info(f"📧 Email recibido: {username}")
     
@@ -65,6 +67,7 @@ async def login(
         # Buscar usuario
         logger.info("🔍 Buscando usuario...")
         user = db.query(User).filter(User.email == username).first()
+        
         if not user:
             logger.error("❌ Usuario no encontrado")
             return templates.TemplateResponse(
@@ -73,6 +76,8 @@ async def login(
             )
         
         logger.info(f"✅ Usuario encontrado: {user.email}")
+        logger.info(f"👤 Nombre: {user.name}")
+        logger.info(f"📅 Creado: {user.created_at}")
         
         # Verificar contraseña
         logger.info("🔒 Verificando contraseña...")
@@ -83,36 +88,36 @@ async def login(
                 {"request": request, "error": "Email o contraseña incorrectos"}
             )
         
-        logger.info("✅ Contraseña verificada")
+        logger.info("✅ Contraseña verificada correctamente")
         
-        # Crear token
-        access_token = create_access_token(
-            data={"sub": user.email}
-        )
-        logger.info("✅ Token creado")
+        # Crear y establecer token
+        logger.info("🎟️ Generando token...")
+        access_token = create_access_token(data={"sub": user.email})
         
-        # Crear respuesta
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
             secure=True,
-            samesite="lax"
+            samesite="lax",
+            max_age=1800
         )
-        logger.info("✅ Cookie establecida")
-        logger.info("✅ Login exitoso - Redirigiendo")
+        
+        logger.info("✅ Token generado y cookie establecida")
+        logger.info("✅ Login exitoso - Redirigiendo al dashboard")
         logger.info("="*50)
         return response
         
     except Exception as e:
-        logger.error(f"❌ Error en login: {str(e)}")
+        logger.error("\n❌ Error en el proceso de login:")
+        logger.error(str(e))
         logger.error("Traceback:", exc_info=True)
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Error del servidor"}
         )
-
+        
 @router.get("/login")
 async def login_page(request: Request):
     # Si hay un token activo, redirigir al dashboard
