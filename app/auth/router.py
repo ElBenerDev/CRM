@@ -33,15 +33,20 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+    print(f"Intento de login para: {form_data.username}")  # Debug log
+    
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
         if not user:
+            print(f"Autenticación fallida para: {form_data.username}")  # Debug log
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Credenciales inválidas"}
             )
         
+        print(f"Usuario autenticado: {user.email}")  # Debug log
         access_token = create_access_token(data={"sub": user.email})
+        
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             key="access_token",
@@ -54,7 +59,7 @@ async def login(
         return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")
+        print(f"Error en login: {str(e)}")  # Debug log
         return JSONResponse(
             status_code=500,
             content={"detail": "Error en el servidor"}
