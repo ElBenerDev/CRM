@@ -4,6 +4,7 @@ import os
 from typing import Optional
 import logging
 from pathlib import Path
+import traceback
 
 
 # FastAPI y Starlette
@@ -201,7 +202,33 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
         },
         status_code=exc.status_code
     )
+    
+@app.exception_handler(Exception)
+async def starlette_exception_handler(request: Request, exc: Exception):
+    # Determinar si estamos en una ruta de autenticación
+    is_auth_route = request.url.path.startswith("/auth")
+    
+    template_name = "auth/error.html" if is_auth_route else "error.html"
+    status_code = 500
+    error_message = str(exc)
 
+    if isinstance(exc, HTTPException):
+        status_code = exc.status_code
+        error_message = exc.detail
+
+    logger.debug(f"Error {status_code}: {error_message}")
+    logger.debug(traceback.format_exc())
+
+    return templates.TemplateResponse(
+        template_name,
+        {
+            "request": request,
+            "status_code": status_code,
+            "error_message": error_message
+        },
+        status_code=status_code
+    )
+    
 # Rutas principales
 @app.get("/", response_class=HTMLResponse)
 async def home(
