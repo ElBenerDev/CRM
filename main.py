@@ -143,7 +143,7 @@ for dir_name in ["css", "js", "img"]:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Routers
 app.include_router(auth_router)

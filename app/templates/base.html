@@ -19,7 +19,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Custom CSS -->
-    <link href="/static/css/styles.css" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
     
     <style>
         .sidebar-nav::-webkit-scrollbar {
@@ -93,7 +93,7 @@
     <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
     <!-- Scripts -->
-    <script src="/static/js/main.js" type="module"></script>
+    <script src="{{ url_for('static', path='js/main.js') }}" type="module"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
