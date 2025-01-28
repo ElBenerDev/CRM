@@ -23,16 +23,16 @@ from .utils import (
 
 # Configuración del router
 router = APIRouter(prefix="/auth", tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-# Configuración de logging
+# Configuración de logging básica
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    stream=sys.stdout
 )
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger("auth")
 
 @router.post("/token")
 async def login(
@@ -41,47 +41,53 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    logger.info("\n" + "="*50)
-    logger.info("🔐 INICIO DEL PROCESO DE LOGIN")
-    logger.info(f"📧 Email recibido: {username}")
+    # Logs directos a stdout para debug
+    print("\n" + "="*50)
+    print(f"INICIO LOGIN - Usuario: {username}")
     
     try:
-        # Verificar conexión a DB
-        logger.info("📊 Verificando conexión a base de datos...")
-        db.execute(text("SELECT 1"))
-        logger.info("✅ Conexión a DB verificada")
-        
-        # Buscar usuario
-        logger.info("🔍 Buscando usuario...")
+        print("Verificando conexión a DB...")
+        try:
+            db.execute(text("SELECT 1"))
+            print("✅ Conexión a DB verificada")
+        except Exception as e:
+            print(f"❌ Error de conexión a DB: {str(e)}")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {"request": request, "error": "Error de conexión"},
+                status_code=500
+            )
+
+        print("Buscando usuario...")
         user = db.query(User).filter(User.email == username).first()
         
         if not user:
-            logger.error("❌ Usuario no encontrado")
+            print("❌ Usuario no encontrado")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
+                {"request": request, "error": "Email o contraseña incorrectos"},
+                status_code=401
             )
         
-        logger.info(f"✅ Usuario encontrado: {user.email}")
-        logger.info(f"👤 Nombre: {user.name}")
+        print(f"✅ Usuario encontrado: {user.email}")
         
-        # Verificar contraseña
-        logger.info("🔒 Verificando contraseña...")
+        print("Verificando contraseña...")
         if not verify_password(password, user.password):
-            logger.error("❌ Contraseña incorrecta")
+            print("❌ Contraseña incorrecta")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
+                {"request": request, "error": "Email o contraseña incorrectos"},
+                status_code=401
             )
         
-        logger.info("✅ Contraseña verificada correctamente")
+        print("✅ Contraseña correcta")
         
-        # Crear token y establecer cookie
-        logger.info("🎟️ Generando token de acceso...")
+        print("Generando token...")
         access_token = create_access_token(
             data={"sub": user.email},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
+        print("✅ Token generado")
         
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
@@ -94,62 +100,47 @@ async def login(
             path="/"
         )
         
-        logger.info("✅ Token generado y cookie establecida")
-        logger.info("✅ Login exitoso - Redirigiendo al dashboard")
-        logger.info("="*50)
+        print("✅ Cookie establecida")
+        print("✅ Login exitoso - Redirigiendo")
+        print("="*50)
+        
         return response
         
     except Exception as e:
-        logger.error("\n❌ Error en el proceso de login:")
-        logger.error(str(e))
-        logger.error("📋 Traceback completo:")
-        logger.error(traceback.format_exc())
+        print("\n❌ ERROR EN LOGIN:")
+        print(str(e))
+        print("\nTraceback completo:")
+        traceback.print_exc()
         return templates.TemplateResponse(
             "auth/login.html",
-            {"request": request, "error": "Error del servidor"}
+            {"request": request, "error": "Error del servidor"},
+            status_code=500
         )
-        
+
 @router.get("/login")
 async def login_page(request: Request):
-    try:
-        # Si hay un token activo, redirigir al dashboard
-        if request.cookies.get("access_token"):
-            logger.info("🔄 Usuario ya autenticado, redirigiendo al dashboard")
-            return RedirectResponse(url="/", status_code=302)
-        
-        logger.info("📝 Mostrando página de login")
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request}
-        )
-    except Exception as e:
-        logger.error(f"❌ Error en login_page: {str(e)}")
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Error del servidor"}
-        )
+    if request.cookies.get("access_token"):
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse("auth/login.html", {"request": request})
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
-    logger.info("\n" + "="*50)
-    logger.info("📝 INICIO DEL PROCESO DE REGISTRO")
-    logger.info(f"📧 Email a registrar: {user.email}")
+    print("\n" + "="*50)
+    print(f"INICIO REGISTRO - Email: {user.email}")
     
     try:
-        # Verificar si el usuario ya existe
         db_user = db.query(User).filter(User.email == user.email).first()
         if db_user:
-            logger.warning("⚠️ Intento de registro con email existente")
+            print("❌ Email ya registrado")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El email ya está registrado"
             )
         
-        # Crear nuevo usuario
-        logger.info("🔒 Hasheando contraseña...")
+        print("Hasheando contraseña...")
         hashed_password = get_password_hash(user.password)
         
-        logger.info("👤 Creando nuevo usuario...")
+        print("Creando usuario...")
         db_user = User(
             email=user.email,
             password=hashed_password,
@@ -160,17 +151,17 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
         
-        logger.info("✅ Usuario registrado correctamente")
-        logger.info("="*50)
+        print("✅ Usuario registrado correctamente")
+        print("="*50)
         return db_user
-    
+        
     except HTTPException as he:
-        logger.error(f"⚠️ Error de validación: {str(he.detail)}")
+        print(f"❌ Error de validación: {str(he.detail)}")
         raise he
     except Exception as e:
-        logger.error("❌ Error en el proceso de registro:")
-        logger.error(str(e))
-        logger.error(traceback.format_exc())
+        print("❌ Error en registro:")
+        print(str(e))
+        traceback.print_exc()
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -179,17 +170,13 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/logout")
 async def logout():
-    logger.info("🚪 Proceso de logout iniciado")
-    try:
-        response = RedirectResponse(url="/auth/login", status_code=302)
-        response.delete_cookie(
-            key="access_token",
-            path="/",
-            secure=True,
-            httponly=True
-        )
-        logger.info("✅ Logout exitoso")
-        return response
-    except Exception as e:
-        logger.error(f"❌ Error en logout: {str(e)}")
-        return RedirectResponse(url="/auth/login", status_code=302)
+    print("Iniciando logout...")
+    response = RedirectResponse(url="/auth/login", status_code=302)
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        secure=True,
+        httponly=True
+    )
+    print("✅ Logout exitoso")
+    return response
