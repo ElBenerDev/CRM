@@ -1,10 +1,14 @@
 # Imports estándar de Python
 from datetime import datetime, timedelta, timezone
 import os
-from typing import Optional
+import time
+from typing import Optional, Dict, List
 import logging
 from pathlib import Path
 
+
+from fastapi.templating import Jinja2Templates
+from starlette.routing import Router
 # FastAPI y Starlette
 from fastapi import (
     FastAPI, 
@@ -12,24 +16,35 @@ from fastapi import (
     Depends, 
     HTTPException, 
     status, 
+    Response,
     Form
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.responses import (
+    PlainTextResponse, 
+    JSONResponse, 
+    HTMLResponse, 
+    RedirectResponse
+)
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-# SQLAlchemy
-from sqlalchemy import func
-from sqlalchemy.orm import Session
-
 # JWT y Autenticación
+from jose import JWTError, jwt
 from app.auth.utils import (
-    get_current_user,
+    SECRET_KEY, 
+    ALGORITHM, 
+    oauth2_scheme, 
+    get_current_user, 
+    ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.auth.router import router as auth_router
+
+# SQLAlchemy
+from sqlalchemy import func, desc
+from sqlalchemy.orm import Session, joinedload
 
 # Configuración y utilidades locales
 from config.settings import settings
@@ -37,33 +52,37 @@ from app.utils.db import (
     get_db, 
     engine, 
     Base, 
-    verify_db_connection
+    verify_db_connection, 
+    reset_db
 )
-from app.utils.logger import logger
 
-# Modelos
+# Modelos y Schemas
 from app.models.models import (
     Patient, 
     Appointment, 
     Lead, 
     User
 )
-
-# Schemas
 from app.schemas.schemas import (
     PatientCreate, 
     PatientResponse,
+    AppointmentCreate, 
+    AppointmentResponse,
     LeadCreate, 
-    LeadResponse
+    LeadResponse,
+    AppointmentUpdate
 )
 
-# Middleware
+# Core imports
+from app.core.templates import templates
 from app.middleware.auth import AuthMiddleware
 from app.middleware.debug import DebugMiddleware
 from app.middleware.logging import LoggingMiddleware
 
 # Servidor
 import uvicorn
+
+from app.utils.logger import logger
 
 # Configuración de logging
 logging.basicConfig(
@@ -95,19 +114,18 @@ def init_db():
         if not verify_db_connection():
             raise Exception("No se pudo establecer conexión con la base de datos")
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Base de datos inicializada correctamente")
+        print("✅ Base de datos inicializada correctamente")
         return True
     except Exception as e:
-        logger.error(f"❌ Error al inicializar la base de datos: {str(e)}")
+        print(f"❌ Error al inicializar la base de datos: {str(e)}")
         return False
+
 
 def url_for(request: Request, name: str, **params):
     return request.url_for(name, **params)
 
-# Configuración de templates
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["url_for"] = url_for
-
 # Inicialización de FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
@@ -118,7 +136,7 @@ app = FastAPI(
 # Configuración de middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -126,6 +144,9 @@ app.add_middleware(
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
+
+# Routers
+app.include_router(auth_router)
 
 # Configuración de archivos estáticos
 for dir_name in ["css", "js", "img"]:
@@ -135,25 +156,21 @@ for dir_name in ["css", "js", "img"]:
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Routers
-app.include_router(auth_router)
 
-# Middleware para logging
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info("\n" + "="*50)
-    logger.info(f"🔄 Nueva solicitud: {request.method} {request.url.path}")
+    logger.info(f"Nueva solicitud: {request.method} {request.url.path}")
     response = await call_next(request)
-    logger.info(f"📤 Respuesta: {response.status_code}")
+    logger.info(f"Respuesta: {response.status_code}")
     return response
 
-# Eventos de la aplicación
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 Aplicación iniciada")
-    logger.info(f"🌐 Ambiente: {settings.ENVIRONMENT}")
-    logger.info(f"🔧 Debug: {settings.DEBUG}")
-    init_db()
+    logger.info("Aplicación iniciada")
+    logger.info(f"Ambiente: {settings.ENVIRONMENT}")
+
+
 
 # Manejadores de excepciones
 @app.exception_handler(HTTPException)
@@ -172,7 +189,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(StarletteHTTPException)
 async def starlette_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code in [401, 403]:
+    if exc.status_code == 401 or exc.status_code == 403:
         return RedirectResponse(url="/auth/login", status_code=302)
     
     return templates.TemplateResponse(
@@ -357,7 +374,7 @@ async def create_lead(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/settings", response_class=HTMLResponse)
+@app.get("/settings", response_class=HTMLResponse) 
 @app.head("/settings")
 async def settings_page(
     request: Request,
@@ -381,7 +398,7 @@ async def settings_page(
         return RedirectResponse(url="/auth/login", status_code=302)
 
 @app.get("/appointments", response_class=HTMLResponse)
-@app.head("/appointments")
+@app.head("/appointments") 
 async def appointments_page(
     request: Request, 
     db: Session = Depends(get_db),

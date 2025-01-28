@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Form
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from datetime import timedelta
+import logging
+import sys
+import traceback
+
+# Importaciones locales
 from app.utils.db import get_db
 from app.models.models import User
 from app.schemas.schemas import UserCreate, UserResponse, Token
+from app.core.templates import templates
 from .utils import (
     authenticate_user, 
     create_access_token, 
@@ -13,39 +20,19 @@ from .utils import (
     verify_password,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from datetime import timedelta
-from app.core.templates import templates  # Cambia esta línea
-from fastapi import Form
-from app.utils.logging_config import logger
 
-
-import logging
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from config.settings import settings
-import sys
-
+# Configuración del router
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
-logger = logging.getLogger(__name__)
 
-
+# Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)  # Esto asegura que los logs vayan a stdout
-    ]
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
-app = FastAPI(title=settings.APP_NAME)
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info(f"Request: {request.method} {request.url}")
-    response = await call_next(request)
-    logger.info(f"Response Status: {response.status_code}")
-    return response
-
+logger = logging.getLogger(__name__)
 
 @router.post("/token")
 async def login(
@@ -77,7 +64,6 @@ async def login(
         
         logger.info(f"✅ Usuario encontrado: {user.email}")
         logger.info(f"👤 Nombre: {user.name}")
-        logger.info(f"📅 Creado: {user.created_at}")
         
         # Verificar contraseña
         logger.info("🔒 Verificando contraseña...")
@@ -90,9 +76,12 @@ async def login(
         
         logger.info("✅ Contraseña verificada correctamente")
         
-        # Crear y establecer token
-        logger.info("🎟️ Generando token...")
-        access_token = create_access_token(data={"sub": user.email})
+        # Crear token y establecer cookie
+        logger.info("🎟️ Generando token de acceso...")
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
         
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
@@ -101,7 +90,8 @@ async def login(
             httponly=True,
             secure=True,
             samesite="lax",
-            max_age=1800
+            max_age=1800,
+            path="/"
         )
         
         logger.info("✅ Token generado y cookie establecida")
@@ -112,7 +102,8 @@ async def login(
     except Exception as e:
         logger.error("\n❌ Error en el proceso de login:")
         logger.error(str(e))
-        logger.error("Traceback:", exc_info=True)
+        logger.error("📋 Traceback completo:")
+        logger.error(traceback.format_exc())
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Error del servidor"}
@@ -120,37 +111,66 @@ async def login(
         
 @router.get("/login")
 async def login_page(request: Request):
-    # Si hay un token activo, redirigir al dashboard
-    if request.cookies.get("access_token"):
-        return RedirectResponse(url="/", status_code=302)
-    
-    return templates.TemplateResponse(
-        "auth/login.html",
-        {"request": request}
-    )
+    try:
+        # Si hay un token activo, redirigir al dashboard
+        if request.cookies.get("access_token"):
+            logger.info("🔄 Usuario ya autenticado, redirigiendo al dashboard")
+            return RedirectResponse(url="/", status_code=302)
+        
+        logger.info("📝 Mostrando página de login")
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request}
+        )
+    except Exception as e:
+        logger.error(f"❌ Error en login_page: {str(e)}")
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "error": "Error del servidor"}
+        )
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
+    logger.info("\n" + "="*50)
+    logger.info("📝 INICIO DEL PROCESO DE REGISTRO")
+    logger.info(f"📧 Email a registrar: {user.email}")
+    
     try:
+        # Verificar si el usuario ya existe
         db_user = db.query(User).filter(User.email == user.email).first()
         if db_user:
+            logger.warning("⚠️ Intento de registro con email existente")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El email ya está registrado"
             )
         
+        # Crear nuevo usuario
+        logger.info("🔒 Hasheando contraseña...")
         hashed_password = get_password_hash(user.password)
+        
+        logger.info("👤 Creando nuevo usuario...")
         db_user = User(
             email=user.email,
             password=hashed_password,
             name=user.name
         )
+        
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+        
+        logger.info("✅ Usuario registrado correctamente")
+        logger.info("="*50)
         return db_user
     
+    except HTTPException as he:
+        logger.error(f"⚠️ Error de validación: {str(he.detail)}")
+        raise he
     except Exception as e:
+        logger.error("❌ Error en el proceso de registro:")
+        logger.error(str(e))
+        logger.error(traceback.format_exc())
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -159,9 +179,17 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/logout")
 async def logout():
-    response = RedirectResponse(url="/auth/login", status_code=302)
-    response.delete_cookie(
-        key="access_token",
-        path="/"
-    )
-    return response
+    logger.info("🚪 Proceso de logout iniciado")
+    try:
+        response = RedirectResponse(url="/auth/login", status_code=302)
+        response.delete_cookie(
+            key="access_token",
+            path="/",
+            secure=True,
+            httponly=True
+        )
+        logger.info("✅ Logout exitoso")
+        return response
+    except Exception as e:
+        logger.error(f"❌ Error en logout: {str(e)}")
+        return RedirectResponse(url="/auth/login", status_code=302)
