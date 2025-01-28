@@ -52,19 +52,30 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
         print("\nPROCESO DE AUTENTICACIÓN")
         print(f"Buscando usuario con email: {email}")
         
+        # Verificar que la sesión de BD está activa
+        try:
+            db.execute("SELECT 1")
+            print("Sesión de BD activa")
+        except Exception as e:
+            print(f"Error con la sesión de BD: {e}")
+            raise
+
+        # Buscar usuario
         user = db.query(User).filter(User.email == email).first()
         
         if not user:
-            print("Usuario no encontrado en la base de datos")
+            print(f"Usuario con email {email} no encontrado en la base de datos")
             return None
             
         print("Usuario encontrado, verificando contraseña...")
+        print(f"Hash almacenado: {user.password[:20]}...")  # Solo mostrar parte del hash por seguridad
+        
         if not verify_password(password, user.password):
             print("Contraseña incorrecta")
             return None
             
         print("Contraseña correcta")
-        print("Usuario autenticado exitosamente")
+        print(f"Usuario {user.email} autenticado exitosamente")
         return user
         
     except Exception as e:

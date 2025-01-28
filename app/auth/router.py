@@ -31,32 +31,58 @@ async def login(
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
     print(f"Método de la petición: {request.method}")
+    print(f"Headers de la petición:")
+    for header, value in request.headers.items():
+        print(f"{header}: {value}")
     print(f"Email recibido: {username}")
-    print(f"Password recibido: {'*' * len(password)}")
     print("="*50)
 
     try:
+        # Verificar conexión a la base de datos
+        try:
+            db.execute("SELECT 1")
+            print("Conexión a la base de datos verificada")
+        except Exception as e:
+            print(f"Error de conexión a la base de datos: {e}")
+            raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+        # Intentar autenticar
         print("Intentando autenticar usuario...")
         user = authenticate_user(db, username, password)
         
         if not user:
             print("Autenticación fallida - Usuario no encontrado o contraseña incorrecta")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Usuario o contraseña incorrectos"
-                }
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Credenciales inválidas"}
             )
 
         print(f"Usuario autenticado exitosamente: {user.email}")
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
-        print("Token de acceso creado correctamente")
         
-        response = RedirectResponse(url="/", status_code=303)
+        # Crear token
+        try:
+            access_token = create_access_token(
+                data={"sub": user.email},
+                expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            )
+            print("Token de acceso creado correctamente")
+        except Exception as e:
+            print(f"Error creando token: {e}")
+            raise HTTPException(status_code=500, detail="Error creando token de acceso")
+
+        # Crear respuesta
+        response = JSONResponse(
+            content={
+                "access_token": access_token,
+                "token_type": "bearer",
+                "user": {
+                    "email": user.email,
+                    "name": user.name
+                }
+            }
+        )
+        
+        # Establecer cookie
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -68,8 +94,9 @@ async def login(
         )
         
         print("Cookie establecida correctamente")
-        print("Redirigiendo al dashboard")
+        print("LOGIN EXITOSO")
         print("="*50 + "\n")
+        
         return response
         
     except Exception as e:
@@ -80,12 +107,9 @@ async def login(
         print("Traceback completo:")
         print(traceback.format_exc())
         print("="*50 + "\n")
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {
-                "request": request,
-                "error": "Error del servidor, por favor intente más tarde"
-            }
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error del servidor: {str(e)}"}
         )
 
 @router.get("/login")

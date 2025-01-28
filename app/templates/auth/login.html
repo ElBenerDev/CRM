@@ -29,12 +29,13 @@
 
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); // Prevenir el envío normal del formulario
+            e.preventDefault();
             
             console.log('Iniciando envío del formulario');
             const formData = new FormData(this);
             
             try {
+                console.log('Enviando petición...');
                 const response = await fetch('/auth/token', {
                     method: 'POST',
                     headers: {
@@ -43,29 +44,33 @@
                     body: new URLSearchParams(formData),
                     credentials: 'same-origin'
                 });
-
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else if (response.ok) {
+        
+                console.log('Respuesta recibida:', response.status);
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
                     const data = await response.json();
-                    console.log('Respuesta:', data);
-                    window.location.href = '/';
+                    console.log('Datos de respuesta:', data);
+                    
+                    if (response.ok) {
+                        console.log('Login exitoso, redirigiendo...');
+                        window.location.href = '/';
+                    } else {
+                        console.error('Error:', data.error);
+                        throw new Error(data.error);
+                    }
                 } else {
-                    const errorData = await response.text();
-                    console.error('Error:', errorData);
-                    // Mostrar error en la UI
-                    const errorDiv = document.querySelector('.error-message') || document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    errorDiv.textContent = 'Error en el inicio de sesión';
-                    const form = document.getElementById('loginForm');
-                    form.parentNode.insertBefore(errorDiv, form);
+                    const text = await response.text();
+                    console.log('Respuesta no JSON:', text);
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    }
                 }
             } catch (error) {
-                console.error('Error:', error);
-                // Mostrar error en la UI
+                console.error('Error en el proceso:', error);
                 const errorDiv = document.querySelector('.error-message') || document.createElement('div');
                 errorDiv.className = 'error-message';
-                errorDiv.textContent = 'Error en el servidor';
+                errorDiv.textContent = error.message || 'Error en el servidor';
                 const form = document.getElementById('loginForm');
                 form.parentNode.insertBefore(errorDiv, form);
             }
