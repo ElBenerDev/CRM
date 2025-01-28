@@ -28,10 +28,13 @@ async def login(
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
     print(f"Email recibido: {username}")
+    print(f"DB session: {db}")
     
     try:
         # Intenta autenticar al usuario
         user = authenticate_user(db, username, password)
+        print("\nVerificando conexión a base de datos...")
+        from app.utils.db import verify_db_connection
         
         if not user:
             print("Autenticación fallida")

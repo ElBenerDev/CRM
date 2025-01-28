@@ -59,26 +59,26 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const emailInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        if (!emailInput.value || !passwordInput.value) {
-            showNotification('Por favor, complete todos los campos', 'error');
-            return;
-        }
-
-        // Mostrar loader
-        const loader = document.getElementById('loader');
-        if (loader) loader.classList.remove('hidden');
-
-        // Enviar formulario
-        this.submit();
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const emailInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+    
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            console.log('Intento de envío de formulario');
+            console.log('Email:', emailInput.value);
+            
+            if (!emailInput.value || !passwordInput.value) {
+                showNotification('Por favor, complete todos los campos', 'error');
+                return;
+            }
+    
+            // Enviar formulario
+            console.log('Enviando formulario...');
+            this.submit();
+        });
     });
-});
 </script>
 {% endblock %}
