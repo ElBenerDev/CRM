@@ -39,21 +39,16 @@
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
                     body: new URLSearchParams(formData),
-                    redirect: 'follow'
+                    credentials: 'same-origin'
                 });
-
+    
                 if (response.ok) {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else {
-                        window.location.href = '/';
-                    }
+                    window.location.href = '/';
                 } else {
-                    const data = await response.json().catch(() => null);
-                    const errorMessage = data?.detail || 'Error en el inicio de sesión';
+                    const data = await response.json().catch(() => ({ detail: 'Error en el inicio de sesión' }));
                     const errorDiv = document.querySelector('.error-message') || document.createElement('div');
                     errorDiv.className = 'error-message';
-                    errorDiv.textContent = errorMessage;
+                    errorDiv.textContent = data.detail;
                     if (!document.querySelector('.error-message')) {
                         document.querySelector('h1').after(errorDiv);
                     }

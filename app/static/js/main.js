@@ -310,6 +310,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.utils = Utils;
 });
 
+
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('expired') === 'true') {
+        alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+    }
+});
+
 // Exportar clases y utilidades
 export {
     NotificationManager,

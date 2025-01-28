@@ -29,48 +29,27 @@ async def login_page(request: Request):
 
 @router.post("/token")
 async def login(
-    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    try:
-        print(f"Intentando autenticar usuario: {form_data.username}")  # Log para debugging
-        user = authenticate_user(db, form_data.username, form_data.password)
-        
-        if not user:
-            print("Autenticación fallida")  # Log para debugging
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Email o contraseña incorrectos"}
-            )
-        
-        print("Usuario autenticado exitosamente")  # Log para debugging
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=access_token_expires
+    user = authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        return RedirectResponse(
+            url="/auth/login?error=invalid_credentials",
+            status_code=302
         )
-        
-        response = RedirectResponse(url="/", status_code=302)
-        response.set_cookie(
-            key="access_token",
-            value=f"Bearer {access_token}",
-            httponly=True,
-            max_age=1800,
-            expires=1800,
-            path="/",
-            secure=True,  # Solo HTTPS
-            samesite="lax"  # Protección CSRF
-        )
-        print("Redirigiendo a /")  # Log para debugging
-        return response
-        
-    except Exception as e:
-        print(f"Error en login: {str(e)}")  # Log para debugging
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Error en el servidor: {str(e)}"}
-        )
+    
+    access_token = create_access_token(data={"sub": user.email})
+    response = RedirectResponse(url="/", status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=1800
+    )
+    return response
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
