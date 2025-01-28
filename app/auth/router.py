@@ -59,12 +59,22 @@ async def login(
                 status_code=401
             )
 
+        # Limpiar sesión anterior si existe
+        request.session.clear()
+        
         # Guardar en sesión
         request.session["user_id"] = str(user.id)
         request.session["user_email"] = user.email
         
-        # Redireccionar al dashboard
-        return RedirectResponse(url="/", status_code=302)
+        # Forzar guardado de sesión
+        await request.session.save()
+        
+        # Redireccionar al dashboard con headers específicos
+        response = RedirectResponse(url="/", status_code=302)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")

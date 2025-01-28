@@ -1,3 +1,4 @@
+import logging
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -5,6 +6,8 @@ from app.utils.db import get_db
 from app.models.models import User
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 class AuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
@@ -22,7 +25,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         try:
-            # Verificar si hay sesión activa
+            # Verificar sesión
             if not hasattr(request, "session"):
                 return RedirectResponse(url="/auth/login", status_code=302)
 
@@ -35,12 +38,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             user = db.query(User).filter(User.id == user_id).first()
             
             if not user:
-                # Si el usuario no existe, limpiar sesión y redireccionar
-                if hasattr(request, "session"):
-                    request.session.clear()
+                # Limpiar sesión si el usuario no existe
+                request.session.clear()
                 return RedirectResponse(url="/auth/login", status_code=302)
 
-            # Añadir usuario a request state para uso en las rutas
+            # Añadir usuario a request state
             request.state.user = user
             
             # Continuar con la solicitud
@@ -48,5 +50,5 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return response
             
         except Exception as e:
-            # En caso de error, redireccionar al login
-            return RedirectResponse(url="/auth/login", status_code=302)
+            logger.error(f"Error en AuthMiddleware: {str(e)}")
+            return RedirectResponse(url="/auth/login", status_code=302) 
