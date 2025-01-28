@@ -20,47 +20,42 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-# Modifica la ruta del token y agrega el manejo de cookies
-
 @router.post("/token")
 async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    print("Iniciando proceso de login")
-    print(f"Email recibido: {form_data.username}")
-
     try:
-        # Intenta autenticar al usuario
+        print("Iniciando proceso de login")
+        print(f"Email recibido: {form_data.username}")
+
         user = authenticate_user(db, form_data.username, form_data.password)
         
         if not user:
-            print("Autenticación fallida - Redirigiendo a login con error")
-            response = RedirectResponse(
-                url="/auth/login?error=credenciales_invalidas",
-                status_code=303
+            print("Autenticación fallida")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Credenciales inválidas"
+                }
             )
-            return response
 
-        # Usuario autenticado correctamente
         print(f"Usuario autenticado: {user.email}")
-        access_token = create_access_token(data={"sub": user.email})
-        
-        # Crear respuesta de redirección
-        response = RedirectResponse(
-            url="/",
-            status_code=303  # Cambiado a 303 See Other
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         
-        # Establecer cookie
+        response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
             secure=True,
             samesite="lax",
-            max_age=1800,
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             path="/"
         )
         
@@ -69,48 +64,54 @@ async def login(
         
     except Exception as e:
         print(f"Error en login: {str(e)}")
-        return RedirectResponse(
-            url="/auth/login?error=error_servidor",
-            status_code=303
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {
+                "request": request,
+                "error": "Error del servidor, por favor intente más tarde"
+            }
         )
-        
+
 @router.get("/login")
-async def login_page(request: Request, error: str = None):
-    error_messages = {
-        "credenciales_invalidas": "Usuario o contraseña incorrectos",
-        "error_servidor": "Error del servidor, por favor intente más tarde"
-    }
-    
+async def login_page(request: Request):
     return templates.TemplateResponse(
         "auth/login.html",
-        {
-            "request": request,
-            "error": error_messages.get(error, "") if error else ""
-        }
+        {"request": request}
     )
-    
+
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered"
+    try:
+        db_user = db.query(User).filter(User.email == user.email).first()
+        if db_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El email ya está registrado"
+            )
+        
+        hashed_password = get_password_hash(user.password)
+        db_user = User(
+            email=user.email,
+            password=hashed_password,
+            name=user.name
         )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
     
-    hashed_password = get_password_hash(user.password)
-    db_user = User(
-        email=user.email,
-        password=hashed_password,
-        name=user.name
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al registrar usuario: {str(e)}"
+        )
 
 @router.get("/logout")
 async def logout():
-    response = RedirectResponse(url="/auth/login")
-    response.delete_cookie("access_token")
+    response = RedirectResponse(url="/auth/login", status_code=302)
+    response.delete_cookie(
+        key="access_token",
+        path="/"
+    )
     return response
