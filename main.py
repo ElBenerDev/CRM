@@ -132,11 +132,16 @@ app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
 
-# Configuración de archivos estáticos
-for dir_name in ["css", "js", "img"]:
-    dir_path = os.path.join(STATIC_DIR, dir_name)
+static_dirs = {
+    "css": os.path.join(STATIC_DIR, "css"),
+    "js": os.path.join(STATIC_DIR, "js"),
+    "img": os.path.join(STATIC_DIR, "img")
+}
+
+for dir_name, dir_path in static_dirs.items():
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
+    app.mount(f"/{dir_name}", StaticFiles(directory=dir_path), name=dir_name)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -179,6 +184,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def starlette_exception_handler(request: Request, exc: StarletteHTTPException):
     if exc.status_code in [401, 403]:
         return RedirectResponse(url="/auth/login", status_code=302)
+    
+    # Verifica si es una solicitud de archivo estático
+    if request.url.path.startswith(('/css/', '/js/', '/img/', '/static/')):
+        return HTMLResponse(
+            content="File not found",
+            status_code=404
+        )
     
     return templates.TemplateResponse(
         "error.html",

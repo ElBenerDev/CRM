@@ -1,51 +1,24 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - CRM Dental</title>
-    <link href="/static/css/styles.css" rel="stylesheet">
-    <style>
-        .error-container {
-            max-width: 600px;
-            margin: 100px auto;
-            padding: 20px;
-            text-align: center;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        
-        .error-container h1 {
-            color: #dc3545;
-            margin-bottom: 20px;
-        }
-        
-        .error-container p {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-        
-        .btn:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <div class="error-container">
-        <h1>Error {{ status_code }}</h1>
-        <p>{{ error_message }}</p>
-        <a href="/auth/login" class="btn">Volver al login</a>
+<!-- app/templates/error.html -->
+{% extends "base.html" %}
+
+{% block title %}Error {% if status_code %}{{ status_code }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Error {% if status_code %}{{ status_code }}{% endif %}
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                {{ error_message }}
+            </p>
+        </div>
+        <div class="mt-5">
+            <a href="/" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Volver al inicio
+            </a>
+        </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
