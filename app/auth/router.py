@@ -49,20 +49,24 @@ async def login(
         
         if not user:
             print("Autenticación fallida")
-            return JSONResponse(
-                status_code=401,
-                content={"error": "Credenciales inválidas"}
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Credenciales inválidas"
+                }
             )
 
         print(f"Usuario autenticado: {user.email}")
         access_token = create_access_token(data={"sub": user.email})
         
-        response = JSONResponse(
-            content={
-                "access_token": access_token,
-                "token_type": "bearer"
-            }
+        # Crear redirección
+        response = RedirectResponse(
+            url="/",
+            status_code=303  # 303 See Other
         )
+        
+        # Establecer cookie
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -81,11 +85,13 @@ async def login(
         print(f"Error en login: {str(e)}")
         import traceback
         print(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Error del servidor"}
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {
+                "request": request,
+                "error": "Error del servidor, por favor intente más tarde"
+            }
         )
-        
         
 @router.get("/login")
 async def login_page(request: Request):
@@ -127,6 +133,9 @@ async def logout():
     response = RedirectResponse(url="/auth/login", status_code=302)
     response.delete_cookie(
         key="access_token",
-        path="/"
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax"
     )
     return response
