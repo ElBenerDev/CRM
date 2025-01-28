@@ -5,6 +5,7 @@ import time
 from typing import Optional, Dict, List
 import logging
 from pathlib import Path
+from main import templates
 
 # FastAPI y Starlette
 from fastapi import (
@@ -80,18 +81,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuración de directorios
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
-TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
-
 def format_date(date):
     if date is None:
         return datetime.utcnow().strftime('%d/%m/%Y')
     return date.strftime('%d/%m/%Y')
 
+def init_db():
+    try:
+        if not verify_db_connection():
+            raise Exception("No se pudo establecer conexión con la base de datos")
+        Base.metadata.create_all(bind=engine)
+        print("✅ Base de datos inicializada correctamente")
+        return True
+    except Exception as e:
+        print(f"❌ Error al inicializar la base de datos: {str(e)}")
+        return False
+
+async def get_current_user_from_request(request: Request, db: Session) -> Optional[User]:
+    try:
+        token = request.cookies.get("access_token")
+        if not token:
+            return None
+            
+        if token.startswith("Bearer "):
+            token = token.split(" ")[1]
+            
+        return await get_current_user(db=db, token=token)
+    except:
+        return None
+
+# Configuración de directorios
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
+
+# Configuración de templates
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.filters["format_date"] = format_date
+
+
 # Middlewares
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -198,7 +226,6 @@ app.add_middleware(
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
-templates = Jinja2Templates(directory="app/templates")
 # Routers
 app.include_router(auth_router)
 
