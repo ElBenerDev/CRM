@@ -84,9 +84,16 @@ async def login(
 
         # 5. Preparar respuesta
         log_debug("5. Preparando respuesta...")
-        response = JSONResponse(
-            content={"success": True, "redirect": "/"},
-            status_code=200
+        response = RedirectResponse(url="/", status_code=302)  # 302 es para redirección temporal
+
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {access_token}",
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=1800,
+            path="/"
         )
         
         response.set_cookie(
