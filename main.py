@@ -5,6 +5,7 @@ from typing import Optional
 import logging
 from pathlib import Path
 
+
 # FastAPI y Starlette
 from fastapi import (
     FastAPI, 
@@ -76,7 +77,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuración de directorios
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
 
 # Funciones auxiliares
@@ -108,7 +110,7 @@ def url_for(request: Request, name: str, **params):
     return request.url_for(name, **params)
 
 # Configuración de templates
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.globals["url_for"] = url_for
 
 # Inicialización de FastAPI

@@ -6,13 +6,15 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 import sys
 import traceback
+import os
 
 from app.utils.db import get_db
 from app.models.models import User
 from .utils import verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-templates = Jinja2Templates(directory="app/templates")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "app", "templates"))
 
 def log_debug(message: str):
     print(f"[DEBUG][{datetime.now()}] {message}", file=sys.stdout)
@@ -20,6 +22,8 @@ def log_debug(message: str):
 
 @router.get("/login")
 async def login_page(request: Request):
+    print(f"Template directory: {os.path.join(BASE_DIR, 'app', 'templates')}")
+    print(f"Current directory: {os.getcwd()}")
     return templates.TemplateResponse("auth/login.html", {"request": request})
 
 @router.post("/token")
