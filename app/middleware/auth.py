@@ -1,40 +1,27 @@
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import RedirectResponse
-from jose import JWTError, jwt
-from app.core.config import settings
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from app.utils.db import get_db
+from app.models.models import User
 
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        excluded_paths = [
-            "/auth/login",
-            "/auth/token", 
-            "/auth/register",
-            "/auth/logout",
-            "/static"
-        ]
+async def verify_auth(request: Request, call_next):
+    if request.url.path.startswith("/auth/"):
+        return await call_next(request)
         
-        if any(request.url.path.startswith(path) for path in excluded_paths):
-            return await call_next(request)
+    if request.url.path.startswith("/static/"):
+        return await call_next(request)
 
-        try:
-            token = request.cookies.get("access_token")
-            if not token:
-                return RedirectResponse(url="/auth/login", status_code=302)
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return RedirectResponse(url="/auth/login", status_code=302)
 
-            if token.startswith("Bearer "):
-                token = token.split(" ")[1]
+    # Obtener usuario de la DB
+    db = next(get_db())
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return RedirectResponse(url="/auth/login", status_code=302)
 
-            try:
-                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-                if not payload.get("sub"):
-                    raise JWTError
-            except JWTError:
-                return RedirectResponse(url="/auth/login", status_code=302)
-
-            response = await call_next(request)
-            return response
-            
-        except Exception as e:
-            print(f"Error en AuthMiddleware: {str(e)}")
-            return RedirectResponse(url="/auth/login", status_code=302)
+    # Añadir usuario a request state
+    request.state.user = user
+    response = await call_next(request)
+    return response

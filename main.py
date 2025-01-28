@@ -5,7 +5,7 @@ from typing import Optional
 import logging
 from pathlib import Path
 import traceback
-
+from starlette.middleware.sessions import SessionMiddleware
 
 # FastAPI y Starlette
 from fastapi import (
@@ -123,11 +123,12 @@ app = FastAPI(
 
 # Configuración de middleware
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    SessionMiddleware, 
+    secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
+    session_cookie="session",
+    max_age=1800,  # 30 minutos
+    same_site="lax",
+    https_only=True
 )
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)

@@ -79,35 +79,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        console.log('Iniciando proceso de login...');
-    
-        // Deshabilitar botón
+        const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerHTML = 'Iniciando sesión...';
     
         try {
             const formData = new FormData(this);
-            console.log('Enviando credenciales...');
-            
             const response = await fetch('/auth/token', {
                 method: 'POST',
                 body: formData,
-                redirect: 'follow' // Esto permite seguir las redirecciones
+                redirect: 'follow'
             });
     
             if (response.redirected) {
-                // Si el servidor envía una redirección, seguirla
                 window.location.href = response.url;
             } else {
-                // Si hay un error, manejarlo
-                const data = await response.json();
-                console.error('Error:', data.error);
-                showError(data.error || 'Error en el inicio de sesión');
+                const text = await response.text();
+                const div = document.createElement('div');
+                div.innerHTML = text;
+                const error = div.querySelector('.error-message');
+                if (error) {
+                    showError(error.textContent);
+                } else {
+                    showError('Error en el inicio de sesión');
+                }
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Iniciar Sesión';
             }
         } catch (error) {
-            console.error('Error en la solicitud:', error);
+            console.error('Error:', error);
             showError('Error de conexión');
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Iniciar Sesión';
