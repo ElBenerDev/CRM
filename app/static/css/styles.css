@@ -45,3 +45,21 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+/* Animations */
+.toast {
+    animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+.notification {
+    transition: all 0.3s ease-in-out;
+    transform: translateX(100%);
+}
+
+.notification.show {
+    transform: translateX(0);
+}

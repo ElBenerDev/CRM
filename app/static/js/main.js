@@ -326,3 +326,92 @@ export {
     ApiService,
     Utils
 };
+
+// Función global para toggle de modales
+window.toggleModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    } else {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Función global para notificaciones
+window.showNotification = function(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white notification
+        ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    notification.textContent = message;
+    
+    const container = document.getElementById('toast-container');
+    container.appendChild(notification);
+
+    notification.offsetHeight;
+    notification.classList.add('show');
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Configuración de interceptores para loader
+let activeRequests = 0;
+const loader = document.getElementById('loader');
+
+function updateLoader() {
+    if (loader) {
+        loader.style.display = activeRequests > 0 ? 'flex' : 'none';
+    }
+}
+
+// Interceptar fetch
+const originalFetch = window.fetch;
+window.fetch = function() {
+    activeRequests++;
+    updateLoader();
+    
+    return originalFetch.apply(this, arguments)
+        .finally(() => {
+            activeRequests--;
+            updateLoader();
+        });
+}
+
+// Event Listeners
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.fixed:not(.hidden)');
+        modals.forEach(modal => {
+            if (modal.id !== 'loader') {
+                toggleModal(modal.id);
+            }
+        });
+    }
+});
+
+document.addEventListener('click', function(e) {
+    const modals = document.querySelectorAll('.fixed:not(.hidden)');
+    modals.forEach(modal => {
+        if (modal.id !== 'loader' && e.target === modal) {
+            toggleModal(modal.id);
+        }
+    });
+});
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    if (!document.getElementById('loader')) {
+        console.error('Elemento loader no encontrado');
+    }
+    if (!document.getElementById('toast-container')) {
+        console.error('Elemento toast-container no encontrado');
+    }
+});

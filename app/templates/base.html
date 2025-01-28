@@ -10,7 +10,7 @@
     <title>{% block title %}Dental CRM{% endblock %}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='img/favicon.png') }}">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,6 +19,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Custom CSS -->
+    <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
+    
     <style>
         .sidebar-nav::-webkit-scrollbar {
             width: 4px;
@@ -26,20 +28,6 @@
         .sidebar-nav::-webkit-scrollbar-thumb {
             background-color: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
-        }
-        .toast {
-            animation: slideIn 0.3s ease-in-out;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-        .notification {
-            transition: all 0.3s ease-in-out;
-            transform: translateX(100%);
-        }
-        .notification.show {
-            transform: translateX(0);
         }
     </style>
 </head>
@@ -53,19 +41,19 @@
                         <span class="font-semibold text-gray-500 text-lg">Dental CRM</span>
                     </div>
                     <div class="hidden md:flex items-center space-x-1">
-                        <a href="/" class="py-4 px-2 {% if active == 'dashboard' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                        <a href="{{ url_for('home') }}" class="py-4 px-2 {% if active == 'dashboard' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
                             <i class="fas fa-chart-line mr-2"></i>Dashboard
                         </a>
-                        <a href="/patients" class="py-4 px-2 {% if active == 'patients' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                        <a href="{{ url_for('patients_page') }}" class="py-4 px-2 {% if active == 'patients' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
                             <i class="fas fa-user-injured mr-2"></i>Pacientes
                         </a>
-                        <a href="/appointments" class="py-4 px-2 {% if active == 'appointments' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                        <a href="{{ url_for('appointments_page') }}" class="py-4 px-2 {% if active == 'appointments' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
                             <i class="fas fa-calendar-alt mr-2"></i>Citas
                         </a>
-                        <a href="/leads" class="py-4 px-2 {% if active == 'leads' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                        <a href="{{ url_for('leads_page') }}" class="py-4 px-2 {% if active == 'leads' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
                             <i class="fas fa-user-plus mr-2"></i>Leads
                         </a>
-                        <a href="/settings" class="py-4 px-2 {% if active == 'settings' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
+                        <a href="{{ url_for('settings_page') }}" class="py-4 px-2 {% if active == 'settings' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
                             <i class="fas fa-cog mr-2"></i>Configuración
                         </a>
                     </div>
@@ -74,6 +62,9 @@
                     <span class="text-gray-500">
                         <i class="fas fa-user mr-2"></i>{{ user.name }}
                     </span>
+                    <a href="{{ url_for('logout') }}" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -102,105 +93,7 @@
     <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
     <!-- Scripts -->
-    <script type="module" src="/static/js/main.js"></script>
+    <script src="{{ url_for('static', path='js/main.js') }}" type="module"></script>
     {% block scripts %}{% endblock %}
-
-    <!-- Inicialización -->
-    <script>
-        // Función global para toggle de modales
-        function toggleModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-            } else {
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-            }
-        }
-
-        // Función global para notificaciones
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white notification
-                ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-            notification.textContent = message;
-            
-            // Usar el contenedor de toast en lugar del body
-            const container = document.getElementById('toast-container');
-            container.appendChild(notification);
-
-            // Forzar un reflow para que la animación funcione
-            notification.offsetHeight;
-            notification.classList.add('show');
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    notification.remove();
-                }, 300);
-            }, 3000);
-        }
-
-        // Configurar interceptores para mostrar/ocultar loader
-        let activeRequests = 0;
-        const loader = document.getElementById('loader');
-
-        function updateLoader() {
-            if (loader) {
-                loader.style.display = activeRequests > 0 ? 'flex' : 'none';
-            }
-        }
-
-        // Interceptar todas las peticiones fetch
-        const originalFetch = window.fetch;
-        window.fetch = function() {
-            activeRequests++;
-            updateLoader();
-            
-            return originalFetch.apply(this, arguments)
-                .finally(() => {
-                    activeRequests--;
-                    updateLoader();
-                });
-        }
-
-        // Cerrar modales con Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const modals = document.querySelectorAll('.fixed:not(.hidden)');
-                modals.forEach(modal => {
-                    if (modal.id !== 'loader') {
-                        toggleModal(modal.id);
-                    }
-                });
-            }
-        });
-
-        // Cerrar modales al hacer clic fuera
-        document.addEventListener('click', function(e) {
-            const modals = document.querySelectorAll('.fixed:not(.hidden)');
-            modals.forEach(modal => {
-                if (modal.id !== 'loader' && e.target === modal) {
-                    toggleModal(modal.id);
-                }
-            });
-        });
-
-        // Inicializar tooltips y otros componentes
-        document.addEventListener('DOMContentLoaded', function() {
-            // Verificar que los elementos necesarios existen
-            if (!document.getElementById('loader')) {
-                console.error('Elemento loader no encontrado');
-            }
-            if (!document.getElementById('toast-container')) {
-                console.error('Elemento toast-container no encontrado');
-            }
-            
-            // Aquí puedes agregar inicializaciones adicionales
-        });
-    </script>
 </body>
 </html>
