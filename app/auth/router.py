@@ -23,20 +23,36 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 @router.post("/token")
 async def login(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
-    print(f"Email recibido: {username}")
     
     try:
-        # Intenta autenticar al usuario
+        # Obtener form data
+        form = await request.form()
+        username = form.get('username')
+        password = form.get('password')
+        
+        print(f"\nDatos recibidos:")
+        print(f"Username: {username}")
+        print(f"Password: {'*' * len(password) if password else 'No recibida'}")
+        
+        if not username or not password:
+            print("\n❌ Faltan credenciales")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Por favor ingrese email y contraseña"
+                }
+            )
+
+        print("\nValidando credenciales...")
         user = authenticate_user(db, username, password)
         
         if not user:
-            print("Autenticación fallida")
+            print("\n❌ Autenticación fallida")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {
@@ -45,16 +61,13 @@ async def login(
                 }
             )
 
-        # Crear el token de acceso
+        print("\n✅ Usuario autenticado correctamente")
         access_token = create_access_token(
             data={"sub": user.email},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         
-        # Crear la respuesta de redirección
         response = RedirectResponse(url="/", status_code=303)
-        
-        # Establecer la cookie con el token
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -65,13 +78,18 @@ async def login(
             path="/"
         )
         
-        print("Login exitoso - Redirigiendo al dashboard")
+        print("\n✅ Token creado y cookie establecida")
+        print("✅ Redirigiendo al dashboard")
+        print("="*50)
         return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")
+        print("\n❌ Error en el proceso de login:")
+        print(str(e))
+        print("\nTraceback completo:")
         import traceback
         print(traceback.format_exc())
+        print("="*50)
         return templates.TemplateResponse(
             "auth/login.html",
             {
