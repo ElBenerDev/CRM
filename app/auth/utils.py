@@ -49,22 +49,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     try:
+        print("\nPROCESO DE AUTENTICACIÓN")
         print(f"Buscando usuario con email: {email}")
+        
         user = db.query(User).filter(User.email == email).first()
         
         if not user:
-            print("Usuario no encontrado")
+            print("Usuario no encontrado en la base de datos")
             return None
             
+        print("Usuario encontrado, verificando contraseña...")
         if not verify_password(password, user.password):
             print("Contraseña incorrecta")
             return None
             
-        print("Usuario autenticado correctamente")
+        print("Contraseña correcta")
+        print("Usuario autenticado exitosamente")
         return user
         
     except Exception as e:
-        print(f"Error en authenticate_user: {str(e)}")
+        print("\nERROR EN AUTHENTICATE_USER")
+        print(f"Tipo de error: {type(e).__name__}")
+        print(f"Mensaje de error: {str(e)}")
+        import traceback
+        print("Traceback completo:")
+        print(traceback.format_exc())
         return None
 
 async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:

@@ -28,27 +28,33 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    print("="*50)
-    print("Iniciando proceso de login")
+    print("\n" + "="*50)
+    print("INICIO DEL PROCESO DE LOGIN")
     print(f"Método de la petición: {request.method}")
     print(f"Email recibido: {username}")
+    print(f"Password recibido: {'*' * len(password)}")
     print("="*50)
 
     try:
+        print("Intentando autenticar usuario...")
         user = authenticate_user(db, username, password)
         
         if not user:
-            print("Autenticación fallida")
+            print("Autenticación fallida - Usuario no encontrado o contraseña incorrecta")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {
                     "request": request,
-                    "error": "Credenciales inválidas"
+                    "error": "Usuario o contraseña incorrectos"
                 }
             )
 
-        print(f"Usuario autenticado: {user.email}")
-        access_token = create_access_token(data={"sub": user.email})
+        print(f"Usuario autenticado exitosamente: {user.email}")
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        print("Token de acceso creado correctamente")
         
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
@@ -57,17 +63,23 @@ async def login(
             httponly=True,
             secure=True,
             samesite="lax",
-            max_age=1800,
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             path="/"
         )
         
+        print("Cookie establecida correctamente")
         print("Redirigiendo al dashboard")
+        print("="*50 + "\n")
         return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")
+        print("\nERROR EN EL PROCESO DE LOGIN")
+        print(f"Tipo de error: {type(e).__name__}")
+        print(f"Mensaje de error: {str(e)}")
         import traceback
+        print("Traceback completo:")
         print(traceback.format_exc())
+        print("="*50 + "\n")
         return templates.TemplateResponse(
             "auth/login.html",
             {
