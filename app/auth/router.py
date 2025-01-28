@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.utils.db import get_db
 from app.models.models import User
 from app.schemas.schemas import UserCreate, UserResponse, Token
@@ -9,14 +10,40 @@ from .utils import (
     authenticate_user, 
     create_access_token, 
     get_password_hash,
+    verify_password,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from datetime import timedelta
 from app.core.templates import templates  # Cambia esta línea
 from fastapi import Form
 
+
+import logging
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from config.settings import settings
+import sys
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+logger = logging.getLogger(__name__)
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # Esto asegura que los logs vayan a stdout
+    ]
+)
+app = FastAPI(title=settings.APP_NAME)
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response Status: {response.status_code}")
+    return response
 
 @router.post("/token")
 async def login(
@@ -25,66 +52,65 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    print("\n" + "="*50)
-    print("INICIO DEL PROCESO DE LOGIN")
-    print(f"Email recibido: {username}")
+    logger.info("="*50)
+    logger.info("🔐 INICIO DEL PROCESO DE LOGIN")
+    logger.info(f"📧 Email recibido: {username}")
     
     try:
-        # Intenta recuperar el usuario de la base de datos
-        user = db.query(User).filter(User.email == username).first()
-        print(f"Usuario encontrado en DB: {user is not None}")
-        if user:
-            print(f"Email en DB: {user.email}")
-            print(f"Nombre en DB: {user.name}")
-            print(f"Is Active: {user.is_active}")
+        # Verificar conexión a DB
+        logger.info("📊 Verificando conexión a base de datos...")
+        db.execute(text("SELECT 1"))
+        logger.info("✅ Conexión a DB verificada")
         
-        # Intenta autenticar
-        user = authenticate_user(db, username, password)
+        # Buscar usuario
+        logger.info("🔍 Buscando usuario...")
+        user = db.query(User).filter(User.email == username).first()
         if not user:
-            print("❌ Autenticación fallida")
+            logger.error("❌ Usuario no encontrado")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Email o contraseña incorrectos"
-                }
+                {"request": request, "error": "Email o contraseña incorrectos"}
             )
-
-        print("\n✅ Usuario autenticado correctamente")
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
         
+        logger.info(f"✅ Usuario encontrado: {user.email}")
+        
+        # Verificar contraseña
+        logger.info("🔒 Verificando contraseña...")
+        if not verify_password(password, user.password):
+            logger.error("❌ Contraseña incorrecta")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {"request": request, "error": "Email o contraseña incorrectos"}
+            )
+        
+        logger.info("✅ Contraseña verificada")
+        
+        # Crear token
+        access_token = create_access_token(
+            data={"sub": user.email}
+        )
+        logger.info("✅ Token creado")
+        
+        # Crear respuesta
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
             httponly=True,
             secure=True,
-            samesite="lax",
-            max_age=1800,
-            path="/"
+            samesite="lax"
         )
-        
-        print("\n✅ Token creado y cookie establecida")
-        print("✅ Redirigiendo al dashboard")
-        print("="*50)
+        logger.info("✅ Cookie establecida")
+        logger.info("✅ Login exitoso - Redirigiendo")
+        logger.info("="*50)
         return response
         
     except Exception as e:
-        print("\n❌ Error en el proceso de login:")
-        print(str(e))
-        print("\nTraceback completo:")
-        import traceback
-        print(traceback.format_exc())
-        print("="*50)
+        logger.error(f"❌ Error en login: {str(e)}")
+        logger.error("Traceback:", exc_info=True)
         return templates.TemplateResponse(
             "auth/login.html",
-            {
-                "request": request,
-                "error": "Error del servidor, por favor intente más tarde"
-            }
+            {"request": request, "error": "Error del servidor"}
         )
 
 @router.get("/login")
