@@ -5,7 +5,6 @@ import time
 from typing import Optional, Dict, List
 import logging
 from pathlib import Path
-from main import templates
 
 # FastAPI y Starlette
 from fastapi import (
@@ -19,7 +18,6 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import (
     PlainTextResponse, 
     JSONResponse, 
@@ -72,34 +70,27 @@ from app.schemas.schemas import (
     AppointmentUpdate
 )
 
+# Core imports
+from app.core.templates import templates
+from app.middleware.auth import AuthMiddleware
+from app.middleware.debug import DebugMiddleware
+from app.middleware.logging import LoggingMiddleware
+
 # Servidor
 import uvicorn
-from app.core.templates import templates, BASE_DIR
 
-STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
-
+# Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-def format_date(date):
-    if date is None:
-        return datetime.utcnow().strftime('%d/%m/%Y')
-    return date.strftime('%d/%m/%Y')
+# Configuración de directorios
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
 
-def init_db():
-    try:
-        if not verify_db_connection():
-            raise Exception("No se pudo establecer conexión con la base de datos")
-        Base.metadata.create_all(bind=engine)
-        print("✅ Base de datos inicializada correctamente")
-        return True
-    except Exception as e:
-        print(f"❌ Error al inicializar la base de datos: {str(e)}")
-        return False
-
+# Funciones auxiliares
 async def get_current_user_from_request(request: Request, db: Session) -> Optional[User]:
     try:
         token = request.cookies.get("access_token")
@@ -113,102 +104,16 @@ async def get_current_user_from_request(request: Request, db: Session) -> Option
     except:
         return None
 
-# Configuración de directorios
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "app", "static")
-TEMPLATES_DIR = os.path.join(BASE_DIR, "app", "templates")
-
-# Configuración de templates
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
-templates.env.filters["format_date"] = format_date
-
-
-# Middlewares
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        excluded_paths = [
-            "/auth/login",
-            "/auth/token", 
-            "/auth/register",
-            "/auth/logout",
-            "/static"
-        ]
-        
-        if any(request.url.path.startswith(path) for path in excluded_paths):
-            return await call_next(request)
-
-        try:
-            token = request.cookies.get("access_token")
-            if not token:
-                return RedirectResponse(url="/auth/login", status_code=302)
-
-            if token.startswith("Bearer "):
-                token = token.split(" ")[1]
-
-            try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                if not payload.get("sub"):
-                    raise HTTPException(status_code=401)
-            except JWTError:
-                return RedirectResponse(url="/auth/login", status_code=302)
-
-            response = await call_next(request)
-            return response
-            
-        except Exception as e:
-            print(f"Error en AuthMiddleware: {str(e)}")
-            return RedirectResponse(url="/auth/login", status_code=302)
-
-class DebugMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        print(f"\n🔍 DEBUG - Request path: {request.url.path}")
-        print(f"🔍 DEBUG - Templates dir: {TEMPLATES_DIR}")
-        print(f"🔍 DEBUG - Template files: {os.listdir(TEMPLATES_DIR)}")
-        
-        try:
-            response = await call_next(request)
-            print(f"🔍 DEBUG - Response status: {response.status_code}")
-            return response
-        except Exception as e:
-            print(f"❌ DEBUG - Error: {str(e)}")
-            raise e
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        start_time = time.time()
-        
-        # Log request
-        print(f"\n{'='*50}")
-        print(f"🔄 Request: {request.method} {request.url}")
-        
-        # Log headers
-        print("\nHeaders:")
-        for name, value in request.headers.items():
-            print(f"{name}: {value}")
-        
-        # Log body for POST/PUT requests
-        if request.method in ["POST", "PUT"]:
-            try:
-                body = await request.body()
-                body_str = body.decode()
-                print(f"\nRequest Body: {body_str}")
-                # Recreate the request with the same body
-                request._body = body
-            except Exception as e:
-                print(f"❌ Error reading request body: {str(e)}")
-
-        try:
-            response = await call_next(request)
-            process_time = time.time() - start_time
-            
-            print(f"\nResponse Status: {response.status_code}")
-            print(f"Process Time: {process_time:.2f}s")
-            print(f"{'='*50}\n")
-            
-            return response
-        except Exception as e:
-            print(f"❌ Error in request processing: {str(e)}")
-            raise
+def init_db():
+    try:
+        if not verify_db_connection():
+            raise Exception("No se pudo establecer conexión con la base de datos")
+        Base.metadata.create_all(bind=engine)
+        print("✅ Base de datos inicializada correctamente")
+        return True
+    except Exception as e:
+        print(f"❌ Error al inicializar la base de datos: {str(e)}")
+        return False
 
 # Inicialización de FastAPI
 app = FastAPI(
@@ -218,7 +123,6 @@ app = FastAPI(
 )
 
 # Configuración de middleware
-app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -229,6 +133,7 @@ app.add_middleware(
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
+
 # Routers
 app.include_router(auth_router)
 
@@ -237,10 +142,8 @@ for dir_name in ["js", "css", "img"]:
     os.makedirs(os.path.join(STATIC_DIR, dir_name), exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-templates = Jinja2Templates(directory="app/templates")
 
-
-
+# Manejadores de excepciones
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     if exc.status_code == 405:  # Method Not Allowed
@@ -254,37 +157,21 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         },
         status_code=exc.status_code
     )
-# Funciones auxiliares
-def format_date(date):
-    if date is None:
-        return datetime.utcnow().strftime('%d/%m/%Y')
-    return date.strftime('%d/%m/%Y')
 
-def init_db():
-    try:
-        if not verify_db_connection():
-            raise Exception("No se pudo establecer conexión con la base de datos")
-        Base.metadata.create_all(bind=engine)
-        print("✅ Base de datos inicializada correctamente")
-        return True
-    except Exception as e:
-        print(f"❌ Error al inicializar la base de datos: {str(e)}")
-        return False
-
-async def get_current_user_from_request(request: Request, db: Session) -> Optional[User]:
-    try:
-        token = request.cookies.get("access_token")
-        if not token:
-            return None
-            
-        if token.startswith("Bearer "):
-            token = token.split(" ")[1]
-            
-        return await get_current_user(db=db, token=token)
-    except:
-        return None
-
-
+@app.exception_handler(StarletteHTTPException)
+async def starlette_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 401 or exc.status_code == 403:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_message": str(exc.detail),
+            "status_code": exc.status_code
+        },
+        status_code=exc.status_code
+    )
 
 # Rutas principales
 @app.get("/", response_class=HTMLResponse)
@@ -342,7 +229,7 @@ async def home(
             }
         )
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error(f"Error en home: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
 
 @app.post("/api/patients/", response_model=PatientResponse)
@@ -375,19 +262,16 @@ async def create_patient(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
-        
-@app.get("/patients", response_class=HTMLResponse)
-async def patients_page(request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Ruta para la página de pacientes"""
-    try:
-        # Verificar si el template existe
-        template_path = os.path.join(TEMPLATES_DIR, "patients.html")
-        if not os.path.exists(template_path):
-            print(f"❌ Template no encontrado: {template_path}")
-            raise HTTPException(status_code=500, detail="Template no encontrado")
 
+@app.get("/patients", response_class=HTMLResponse)
+async def patients_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
         patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-        print(f"✅ Pacientes encontrados: {len(patients)}")
+        logger.info(f"Pacientes encontrados: {len(patients)}")
         
         return templates.TemplateResponse(
             "patients.html",
@@ -404,9 +288,9 @@ async def patients_page(request: Request, db: Session = Depends(get_db), current
             }
         )
     except Exception as e:
+        logger.error(f"Error en patients_page: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
 
-# Additional routes
 @app.get("/leads", response_class=HTMLResponse)
 @app.head("/leads")
 async def leads_page(
@@ -414,7 +298,6 @@ async def leads_page(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Ruta para la página de leads"""
     try:
         leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
         
@@ -432,6 +315,7 @@ async def leads_page(
             }
         )
     except Exception as e:
+        logger.error(f"Error en leads_page: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
 
 @app.post("/api/leads/", response_model=LeadResponse)
@@ -481,6 +365,7 @@ async def settings_page(
             }
         )
     except Exception as e:
+        logger.error(f"Error en settings_page: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
 
 @app.get("/appointments", response_class=HTMLResponse)
@@ -490,7 +375,6 @@ async def appointments_page(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Ruta para la página de citas"""
     if request.method == "HEAD":
         return HTMLResponse(content="")
         
@@ -516,25 +400,9 @@ async def appointments_page(
             }
         )
     except Exception as e:
+        logger.error(f"Error en appointments_page: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
-    
-    
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 401 or exc.status_code == 403:
-        return RedirectResponse(url="/auth/login", status_code=302)
-    
-    # Para otras excepciones, usa la nueva plantilla de error
-    return templates.TemplateResponse(
-        "error.html",
-        {
-            "request": request,
-            "error_message": str(exc.detail),
-            "status_code": exc.status_code
-        },
-        status_code=exc.status_code
-    )
-    
+
 @app.get("/auth/logout")
 async def logout():
     response = RedirectResponse(url="/auth/login", status_code=302)
@@ -545,7 +413,6 @@ async def logout():
         httponly=True
     )
     return response
-
 
 # Inicio de la aplicación
 if __name__ == "__main__":

@@ -1,34 +1,40 @@
-# app/middleware/auth.py
 from fastapi import Request
-from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.auth.utils import get_current_user, oauth2_scheme
+from starlette.responses import RedirectResponse
+from jose import JWTError, jwt
+from app.core.config import settings
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Rutas que no requieren autenticación
-        public_paths = [
+        excluded_paths = [
             "/auth/login",
+            "/auth/token", 
             "/auth/register",
-            "/auth/token",
-            "/static/",
+            "/auth/logout",
+            "/static"
         ]
-
-        # Verificar si la ruta actual es pública
-        if any(request.url.path.startswith(path) for path in public_paths):
+        
+        if any(request.url.path.startswith(path) for path in excluded_paths):
             return await call_next(request)
 
-        # Verificar token en cookies
-        token = request.cookies.get("access_token")
-        if not token:
-            return RedirectResponse(url="/auth/login", status_code=302)
-
         try:
-            # Limpiar el prefijo "Bearer " si existe
+            token = request.cookies.get("access_token")
+            if not token:
+                return RedirectResponse(url="/auth/login", status_code=302)
+
             if token.startswith("Bearer "):
                 token = token.split(" ")[1]
 
-            # Verificar el token y continuar si es válido
-            return await call_next(request)
-        except Exception:
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+                if not payload.get("sub"):
+                    raise JWTError
+            except JWTError:
+                return RedirectResponse(url="/auth/login", status_code=302)
+
+            response = await call_next(request)
+            return response
+            
+        except Exception as e:
+            print(f"Error en AuthMiddleware: {str(e)}")
             return RedirectResponse(url="/auth/login", status_code=302)
