@@ -124,7 +124,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
 )
 
-# Configuración de middleware
+# Primero el SessionMiddleware
 app.add_middleware(
     SessionMiddleware, 
     secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
@@ -133,6 +133,8 @@ app.add_middleware(
     same_site="lax",
     https_only=True
 )
+
+# Luego los demás middlewares
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
@@ -148,7 +150,7 @@ for dir_name in ["css", "js", "img"]:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Routers
 app.include_router(auth_router)
