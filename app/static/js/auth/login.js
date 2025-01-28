@@ -1,13 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('loginForm');
-    const errorDiv = document.getElementById('error-message');
-
-    function showError(message) {
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-    }
+    const errorElement = document.getElementById('error-message');
 
     if (form) {
         form.addEventListener('submit', async function(e) {
@@ -21,30 +14,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch('/auth/token', {
                     method: 'POST',
                     body: formData,
-                    headers: {
-                        'Accept': 'text/html'
-                    },
                     redirect: 'follow'
                 });
 
                 if (response.redirected) {
-                    // Si hay redirección, seguirla
                     window.location.href = response.url;
                 } else {
-                    // Si hay error, mostrar el mensaje
                     const html = await response.text();
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
-                    const error = doc.querySelector('.error-message');
-                    if (error) {
-                        showError(error.textContent);
-                    } else {
-                        showError('Error en el inicio de sesión');
+                    const error = doc.querySelector('#error-message')?.textContent 
+                        || 'Error en el inicio de sesión';
+                    if (errorElement) {
+                        errorElement.textContent = error;
+                        errorElement.style.display = 'block';
                     }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showError('Error de conexión');
+                if (errorElement) {
+                    errorElement.textContent = 'Error de conexión';
+                    errorElement.style.display = 'block';
+                }
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Iniciar Sesión';
