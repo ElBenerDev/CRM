@@ -28,16 +28,20 @@ async def login(
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
     print(f"Email recibido: {username}")
-    print(f"DB session: {db}")
     
     try:
-        # Intenta autenticar al usuario
-        user = authenticate_user(db, username, password)
-        print("\nVerificando conexión a base de datos...")
-        from app.utils.db import verify_db_connection
+        # Intenta recuperar el usuario de la base de datos
+        user = db.query(User).filter(User.email == username).first()
+        print(f"Usuario encontrado en DB: {user is not None}")
+        if user:
+            print(f"Email en DB: {user.email}")
+            print(f"Nombre en DB: {user.name}")
+            print(f"Is Active: {user.is_active}")
         
+        # Intenta autenticar
+        user = authenticate_user(db, username, password)
         if not user:
-            print("Autenticación fallida")
+            print("❌ Autenticación fallida")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {
