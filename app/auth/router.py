@@ -82,6 +82,10 @@ async def login(
 
 @router.get("/login")
 async def login_page(request: Request):
+    # Si hay un token activo, redirigir al dashboard
+    if request.cookies.get("access_token"):
+        return RedirectResponse(url="/", status_code=302)
+    
     return templates.TemplateResponse(
         "auth/login.html",
         {"request": request}
