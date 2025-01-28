@@ -2,7 +2,6 @@
 from jose import JWTError, jwt
 from app.auth.utils import SECRET_KEY, ALGORITHM, oauth2_scheme, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.auth.router import router as auth_router
-from app.auth import router as auth_router
 import uvicorn
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
