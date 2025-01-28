@@ -28,16 +28,28 @@ async def login(
 ):
     print("\n" + "="*50)
     print("INICIO DEL PROCESO DE LOGIN")
+    print(f"Método de la petición: {request.method}")
     
     try:
+        # Log de headers
+        print("\nHeaders recibidos:")
+        for name, value in request.headers.items():
+            print(f"{name}: {value}")
+        
+        # Obtener y loguear el form data
         form_data = await request.form()
+        print("\nForm data recibido:")
+        for key, value in form_data.items():
+            if key == 'password':
+                print(f"{key}: ********")
+            else:
+                print(f"{key}: {value}")
+        
         username = form_data.get('username')
         password = form_data.get('password')
         
-        print(f"Email recibido: {username}")
-        
         if not username or not password:
-            print("Faltan credenciales")
+            print("\nFaltan credenciales")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {
@@ -47,6 +59,7 @@ async def login(
                 status_code=400
             )
 
+        print(f"\nIntentando autenticar usuario: {username}")
         user = authenticate_user(db, username, password)
         
         if not user:
@@ -84,9 +97,12 @@ async def login(
         return response
         
     except Exception as e:
-        print(f"Error en login: {str(e)}")
+        print("\nError en login:")
+        print(str(e))
         import traceback
+        print("\nTraceback:")
         print(traceback.format_exc())
+        print("="*50)
         return templates.TemplateResponse(
             "auth/login.html",
             {
@@ -95,7 +111,6 @@ async def login(
             },
             status_code=500
         )
-        
 @router.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse(
