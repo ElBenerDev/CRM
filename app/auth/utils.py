@@ -29,13 +29,14 @@ def log_auth(message: str):
     sys.stdout.flush()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica si la contraseña coincide con el hash"""
+    """Verifica la contraseña"""
     try:
+        print(f"\n[DEBUG] Verificando contraseña...")
         result = pwd_context.verify(plain_password, hashed_password)
+        print(f"[DEBUG] Resultado verificación: {'✓ OK' if result else '✗ FAIL'}")
         return result
     except Exception as e:
-        log_auth(f"❌ Error verificando contraseña: {str(e)}")
-        log_auth(traceback.format_exc())
+        print(f"[DEBUG] Error en verificación: {str(e)}")
         return False
 
 def get_password_hash(password: str) -> str:

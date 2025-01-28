@@ -31,19 +31,20 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    # Logs iniciales
     print("\n" + "="*50)
-    print(f"🔄 INICIO DE LOGIN - {datetime.now()}")
-    print(f"📧 Usuario intentando login: {username}")
-    
+    print(f"[LOGIN] Intento de inicio de sesión")
+    print(f"[LOGIN] Email: {username}")
+    print(f"[LOGIN] Timestamp: {datetime.now()}")
+    print("-"*50)
+
     try:
-        # 1. Verificar conexión a DB
-        print("1️⃣ Verificando conexión a base de datos...")
+        # 1. Verificar conexión DB
+        print("[LOGIN] 1. Verificando conexión a DB...")
         try:
             db.execute(text("SELECT 1"))
-            print("✅ Conexión a DB verificada")
+            print("[LOGIN] ✓ Conexión a DB verificada")
         except Exception as e:
-            print(f"❌ Error de conexión a DB: {str(e)}")
+            print(f"[LOGIN] ✗ Error de conexión: {str(e)}")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Error de conexión a la base de datos"},
@@ -51,41 +52,49 @@ async def login(
             )
 
         # 2. Buscar usuario
-        print("2️⃣ Buscando usuario en la base de datos...")
+        print("[LOGIN] 2. Buscando usuario...")
         user = db.query(User).filter(User.email == username).first()
         
         if not user:
-            print(f"❌ Usuario no encontrado: {username}")
+            print(f"[LOGIN] ✗ Usuario no encontrado: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"},
                 status_code=401
             )
         
-        print(f"✅ Usuario encontrado: {user.email}")
-        
+        print(f"[LOGIN] ✓ Usuario encontrado: {user.email}")
+
         # 3. Verificar contraseña
-        print("3️⃣ Verificando contraseña...")
-        valid_password = verify_password(password, user.password)
-        print(f"Resultado verificación: {'✅ Correcta' if valid_password else '❌ Incorrecta'}")
-        
-        if not valid_password:
+        print("[LOGIN] 3. Verificando contraseña...")
+        if not verify_password(password, user.password):
+            print("[LOGIN] ✗ Contraseña incorrecta")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"},
                 status_code=401
             )
+        
+        print("[LOGIN] ✓ Contraseña verificada")
 
         # 4. Generar token
-        print("4️⃣ Generando token...")
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
-        print("✅ Token generado correctamente")
+        print("[LOGIN] 4. Generando token...")
+        try:
+            access_token = create_access_token(
+                data={"sub": user.email},
+                expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            )
+            print("[LOGIN] ✓ Token generado")
+        except Exception as e:
+            print(f"[LOGIN] ✗ Error generando token: {str(e)}")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {"request": request, "error": "Error generando credenciales"},
+                status_code=500
+            )
 
         # 5. Crear respuesta
-        print("5️⃣ Preparando respuesta...")
+        print("[LOGIN] 5. Preparando respuesta...")
         response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
             key="access_token",
@@ -97,20 +106,20 @@ async def login(
             path="/"
         )
         
-        print("✅ Cookie establecida correctamente")
-        print("✅ Login exitoso - Redirigiendo al dashboard")
+        print("[LOGIN] ✓ Cookie establecida")
+        print("[LOGIN] ✓ Login exitoso")
         print("="*50)
         
         return response
-        
+
     except Exception as e:
-        print("\n❌ ERROR EN PROCESO DE LOGIN:")
-        print(f"Error: {str(e)}")
-        print("Traceback completo:")
+        print("\n[LOGIN] ¡ERROR CRÍTICO!")
+        print(f"[LOGIN] Error: {str(e)}")
+        print("[LOGIN] Traceback:")
         traceback.print_exc()
         return templates.TemplateResponse(
             "auth/login.html",
-            {"request": request, "error": "Error interno del servidor"},
+            {"request": request, "error": "Error del servidor"},
             status_code=500
         )
 

@@ -17,7 +17,8 @@
         </div>
         {% endif %}
 
-        <form class="mt-8 space-y-6" method="POST" action="/auth/token">
+        <form class="mt-8 space-y-6" id="loginForm" method="POST" action="/auth/token">
+            <input type="hidden" name="remember" value="true">
             <div class="rounded-md shadow-sm -space-y-px">
                 <div class="mb-4">
                     <label for="username" class="block text-sm font-medium text-gray-700">
@@ -26,6 +27,7 @@
                     <input id="username" 
                            name="username" 
                            type="email" 
+                           autocomplete="email"
                            required 
                            class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                            placeholder="correo@ejemplo.com">
@@ -37,6 +39,7 @@
                     <input id="password" 
                            name="password" 
                            type="password" 
+                           autocomplete="current-password"
                            required 
                            class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                            placeholder="••••••••">
@@ -45,6 +48,7 @@
 
             <div>
                 <button type="submit" 
+                        id="submitBtn"
                         class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <span class="absolute left-0 inset-y-0 flex items-center pl-3">
                         <i class="fas fa-sign-in-alt"></i>
@@ -59,26 +63,53 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.querySelector('form');
-        const emailInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-    
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log('Iniciando proceso de login...');
+
+        if (!emailInput.value || !passwordInput.value) {
+            console.error('Campos incompletos');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Iniciando sesión...';
+
+        try {
+            const formData = new FormData(form);
+            console.log('Enviando datos al servidor...');
             
-            console.log('Intento de envío de formulario');
-            console.log('Email:', emailInput.value);
-            
-            if (!emailInput.value || !passwordInput.value) {
-                showNotification('Por favor, complete todos los campos', 'error');
-                return;
+            const response = await fetch('/auth/token', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            console.log('Respuesta recibida:', response.status);
+
+            if (response.redirected) {
+                console.log('Redirigiendo a:', response.url);
+                window.location.href = response.url;
+            } else if (!response.ok) {
+                const data = await response.json();
+                console.error('Error:', data);
+                throw new Error(data.detail || 'Error en el inicio de sesión');
             }
-    
-            // Enviar formulario
-            console.log('Enviando formulario...');
-            this.submit();
-        });
+
+        } catch (error) {
+            console.error('Error en el proceso:', error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Iniciar Sesión';
+        }
     });
+});
 </script>
 {% endblock %}
