@@ -15,6 +15,7 @@ from datetime import timedelta
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from fastapi.responses import JSONResponse
+from fastapi import Form
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -23,21 +24,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 @router.post("/token")
 async def login(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    username: str = Form(...),
+    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     print("="*50)
     print("Iniciando proceso de login")
     print(f"Método de la petición: {request.method}")
-    print(f"Headers recibidos: {request.headers}")
-    print(f"Email recibido: {form_data.username}")
+    print(f"Email recibido: {username}")
     print("="*50)
 
     try:
-        user = authenticate_user(db, form_data.username, form_data.password)
+        user = authenticate_user(db, username, password)
         
         if not user:
-            print("Autenticación fallida - Usuario no encontrado o contraseña incorrecta")
+            print("Autenticación fallida")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {
@@ -46,10 +47,10 @@ async def login(
                 }
             )
 
-        print(f"Usuario autenticado correctamente: {user.email}")
+        print(f"Usuario autenticado: {user.email}")
         access_token = create_access_token(data={"sub": user.email})
         
-        response = RedirectResponse(url="/", status_code=302)
+        response = RedirectResponse(url="/", status_code=303)
         response.set_cookie(
             key="access_token",
             value=f"Bearer {access_token}",
@@ -65,11 +66,13 @@ async def login(
         
     except Exception as e:
         print(f"Error en login: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return templates.TemplateResponse(
             "auth/login.html",
             {
                 "request": request,
-                "error": f"Error del servidor: {str(e)}"
+                "error": "Error del servidor, por favor intente más tarde"
             }
         )
 

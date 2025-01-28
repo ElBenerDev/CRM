@@ -1,25 +1,44 @@
-# JWT y Autenticación
-from jose import JWTError, jwt
-from app.auth.utils import SECRET_KEY, ALGORITHM, oauth2_scheme, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
-from app.auth.router import router as auth_router
-import uvicorn
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 # Imports estándar de Python
 from datetime import datetime, timedelta, timezone
 import os
 import time
 from typing import Optional, Dict, List
+import logging
+from pathlib import Path
 
 # FastAPI y Starlette
-from fastapi import FastAPI, Request, Depends, HTTPException, status, Response
+from fastapi import (
+    FastAPI, 
+    Request, 
+    Depends, 
+    HTTPException, 
+    status, 
+    Response,
+    Form
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import (
+    PlainTextResponse, 
+    JSONResponse, 
+    HTMLResponse, 
+    RedirectResponse
+)
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.exceptions import HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# JWT y Autenticación
+from jose import JWTError, jwt
+from app.auth.utils import (
+    SECRET_KEY, 
+    ALGORITHM, 
+    oauth2_scheme, 
+    get_current_user, 
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
+from app.auth.router import router as auth_router
 
 # SQLAlchemy
 from sqlalchemy import func, desc
@@ -27,17 +46,33 @@ from sqlalchemy.orm import Session, joinedload
 
 # Configuración y utilidades locales
 from config.settings import settings
-from app.utils.db import get_db, engine, Base, verify_db_connection, reset_db
+from app.utils.db import (
+    get_db, 
+    engine, 
+    Base, 
+    verify_db_connection, 
+    reset_db
+)
 
 # Modelos y Schemas
-from app.models.models import Patient, Appointment, Lead, User
+from app.models.models import (
+    Patient, 
+    Appointment, 
+    Lead, 
+    User
+)
 from app.schemas.schemas import (
-    PatientCreate, PatientResponse,
-    AppointmentCreate, AppointmentResponse,
-    LeadCreate, LeadResponse,
+    PatientCreate, 
+    PatientResponse,
+    AppointmentCreate, 
+    AppointmentResponse,
+    LeadCreate, 
+    LeadResponse,
     AppointmentUpdate
 )
-import logging
+
+# Servidor
+import uvicorn
 
 logging.basicConfig(
     level=logging.INFO,
@@ -149,6 +184,8 @@ for dir_name in ["js", "css", "img"]:
     os.makedirs(os.path.join(STATIC_DIR, dir_name), exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory="app/templates")
+
 
 
 @app.exception_handler(HTTPException)
