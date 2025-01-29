@@ -7,18 +7,16 @@ from app.models.models import User
 from app.auth.utils import verify_password
 import logging
 
-router = APIRouter(prefix="/auth", tags=["auth"])  
+router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 logger = logging.getLogger(__name__)
 
-@router.get("/login")
+@router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
+    logger.info("Accediendo a página de login")
     return templates.TemplateResponse(
         "auth/login.html",
-        {
-            "request": request,
-            "username": request.query_params.get("username", "")
-        }
+        {"request": request}
     )
 
 @router.post("/login")

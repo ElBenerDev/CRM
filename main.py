@@ -166,7 +166,7 @@ def url_for(request: Request, name: str, **params):
 # Configuración de la aplicación
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Sistema CRM para gestión dental",
+    description="Sistema CRM para gestión dental",  
     version=settings.APP_VERSION
 )
 
