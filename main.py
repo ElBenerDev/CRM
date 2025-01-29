@@ -186,22 +186,13 @@ async def log_requests(request: Request, call_next):
 # 1. SessionMiddleware debe ser el ÚLTIMO en registrarse (para ejecutarse primero)
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.SECRET_KEY,
+    secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
     session_cookie="session",
     max_age=1800,
     same_site="Lax",
     https_only=True
 )
 
-# 2. CORSMiddleware
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.SECRET_KEY,  # ¡Verifica que esté definido!
-    session_cookie="session",
-    max_age=1800,
-    same_site="Lax",
-    https_only=settings.ENVIRONMENT == "production"
-)
 
 # 2. CORSMiddleware
 app.add_middleware(

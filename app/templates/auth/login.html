@@ -64,6 +64,11 @@
             })
             .catch(error => {
                 console.error('Error en login:', error);
+                // Mostrar mensaje de error genérico
+                const errorDiv = document.querySelector('.error-message');
+                if (errorDiv) {
+                    errorDiv.textContent = "Error de conexión con el servidor";
+                }
                 submitButton.disabled = false;
                 buttonText.style.display = 'inline';
                 spinner.style.display = 'none';

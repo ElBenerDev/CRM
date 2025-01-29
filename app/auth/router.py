@@ -29,22 +29,24 @@ async def login(
     db: Session = Depends(get_db)
 ):
     try:
-        logger.info(f"Intento de login para: {username}")
+        logger.info(f"Validando usuario: {username}")
         
+        # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         if not user:
-            logger.warning(f"Usuario no encontrado: {username}")
+            logger.error("Usuario no encontrado en la base de datos")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Credenciales inválidas", "username": username},
+                {"request": request, "error": "Usuario no existe"},
                 status_code=401
             )
 
+        # Verificar contraseña
         if not verify_password(password, user.password):
-            logger.warning(f"Contraseña incorrecta para: {username}")
+            logger.error("Contraseña incorrecta")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Credenciales inválidas", "username": username},
+                {"request": request, "error": "Contraseña inválida"},
                 status_code=401
             )
 
@@ -52,18 +54,15 @@ async def login(
         request.session.clear()
         request.session["user_id"] = str(user.id)
         request.session["authenticated"] = True
-        
-        # Forzar la escritura de la cookie en la respuesta
+        logger.info("Sesión configurada correctamente")
+
+        # Redirigir al dashboard
         response = RedirectResponse(url="/dashboard", status_code=303)
-        
-        # Asegurar que la cookie se envía (opcional, pero útil para depuración)
-        logger.info(f"Cookie de sesión generada: {request.session.get('session')}")
-        
+        logger.info(f"Cookie de sesión: {request.session}")
         return response
 
     except Exception as e:
-        logger.error(f"Error en login: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(f"Error crítico: {str(e)}")
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Error interno del servidor"},
