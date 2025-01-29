@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - CRM Dental</title>
-    <!-- Asegurarnos que los estilos se cargan correctamente -->
     <link rel="stylesheet" href="{{ url_for('static', path='css/auth/login.css') }}">
 </head>
 <body>
     <div class="login-container">
-        <!-- Agregar validación del lado del cliente y control de reenvío -->
-        <form method="POST" action="/auth/login" id="loginForm" enctype="application/x-www-form-urlencoded" novalidate>
+        <form method="POST" action="/auth/login" id="loginForm" enctype="application/x-www-form-urlencoded">
             <div class="form-group">
                 <label for="username">Email</label>
                 <input type="email" id="username" name="username" required>
@@ -20,32 +18,73 @@
                 <input type="password" id="password" name="password" required>
             </div>
             {% if error %}
-            <div class="error-message">
+            <div class="error-message" role="alert">
                 {{ error }}
             </div>
             {% endif %}
-            <button type="submit" class="btn-login">Login</button>
+            <button type="submit" class="btn-login" id="submitButton">
+                <span class="button-text">Login</span>
+                <span class="spinner" style="display: none;">
+                    Cargando...
+                </span>
+            </button>
         </form>
     </div>
 
-    <!-- Script de validación -->
     <script>
         document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const form = this;
             const submitButton = document.getElementById('submitButton');
             const buttonText = submitButton.querySelector('.button-text');
             const spinner = submitButton.querySelector('.spinner');
-
+    
             // Deshabilitar el botón y mostrar spinner
             submitButton.disabled = true;
             buttonText.style.display = 'none';
             spinner.style.display = 'inline';
-
-            // Continuar con el envío del formulario
-            return true;
+    
+            // Crear FormData y convertir a URLSearchParams
+            const formData = new FormData(form);
+            const urlEncodedData = new URLSearchParams(formData).toString();
+    
+            // Enviar el formulario usando fetch
+            fetch('/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json, text/html'
+                },
+                credentials: 'same-origin', // Importante para las cookies de sesión
+                body: urlEncodedData
+            })
+            .then(response => {
+                console.log('Status:', response.status);
+                
+                if (response.redirected) {
+                    console.log('Redirigiendo a:', response.url);
+                    window.location.href = response.url;
+                    return;
+                }
+                
+                // Si no hay redirección, intentar procesar la respuesta
+                return response.text().then(text => {
+                    if (!response.ok) {
+                        throw new Error(text);
+                    }
+                    // Si llegamos aquí, actualizar la página para mostrar errores
+                    document.documentElement.innerHTML = text;
+                });
+            })
+            .catch(error => {
+                console.error('Error en login:', error);
+                // Restaurar el botón
+                submitButton.disabled = false;
+                buttonText.style.display = 'inline';
+                spinner.style.display = 'none';
+            });
         });
     </script>
-    
-    <!-- Asegurarnos que el script se carga correctamente -->
-    <script src="{{ url_for('static', path='js/auth/login.js') }}"></script>
 </body>
 </html>
