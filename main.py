@@ -182,7 +182,8 @@ async def log_requests(request: Request, call_next):
     logger.info(f"📤 Respuesta: {response.status_code}")
     return response
 
-# Middleware stack (orden importante)
+# Middleware stack (ORDEN CORREGIDO)
+# 1. SessionMiddleware debe ser el ÚLTIMO en registrarse (para ejecutarse primero)
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
@@ -192,6 +193,7 @@ app.add_middleware(
     https_only=settings.ENVIRONMENT == "production"
 )
 
+# 2. CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -200,7 +202,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Los demás middlewares DEBEN ir DESPUÉS de SessionMiddleware
+# 3. Middlewares personalizados (se ejecutarán después de SessionMiddleware)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(DebugMiddleware)
