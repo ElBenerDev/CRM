@@ -1,4 +1,5 @@
 # app/auth/router.py
+import traceback
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -36,7 +37,14 @@ async def login(
                 {"request": request, "error": "Email o contraseña incorrectos"}
             )
 
-        if not verify_password(password, user.password):
+        # Log del hash almacenado
+        logger.info(f"Hash almacenado: {user.password}")
+        
+        # Verificar contraseña
+        is_valid = verify_password(password, user.password)
+        logger.info(f"Resultado de verificación de contraseña: {is_valid}")
+
+        if not is_valid:
             logger.warning(f"Contraseña incorrecta para usuario: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
@@ -51,14 +59,16 @@ async def login(
         request.session["user_email"] = user.email
         
         # Log de sesión guardada
-        logger.info(f"Sesión guardada para usuario: {username}")
+        logger.info(f"Sesión guardada. user_id: {request.session.get('user_id')}, email: {request.session.get('user_email')}")
         
-        # Redireccionar al dashboard
+        # Redireccionar al dashboard con logs
+        logger.info("Redirigiendo al dashboard...")
         response = RedirectResponse(url="/", status_code=303)
         return response
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Error interno del servidor"}
