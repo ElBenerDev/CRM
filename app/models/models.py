@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Enum
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from app.utils.db import Base
 from sqlalchemy.sql import func
-
+from datetime import datetime, timezone
+from app.utils.db import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -17,8 +16,6 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-
-
 class Patient(Base):
     __tablename__ = "patients"
 
@@ -26,10 +23,8 @@ class Patient(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
-    # Cambiar datetime.utcnow por la nueva forma recomendada
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
     appointments = relationship("Appointment", back_populates="patient")
 
 class Appointment(Base):
@@ -43,7 +38,6 @@ class Appointment(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
     patient = relationship("Patient", back_populates="appointments")
 
 class Lead(Base):
@@ -54,42 +48,9 @@ class Lead(Base):
     email = Column(String, unique=True, index=True)
     phone = Column(String)
     status = Column(String, default="nuevo")
-    source = Column(String, nullable=True)  # Nuevo campo
-    interest = Column(String, nullable=True)  # Nuevo campo
-    priority = Column(String, default="media")  # Nuevo campo
+    source = Column(String, nullable=True)
+    interest = Column(String, nullable=True)
+    priority = Column(String, default="media")
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Enum
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.utils.db import Base
-
-class Patient(Base):
-    __tablename__ = "patients"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    email = Column(String, unique=True, index=True)
-    phone = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Relación con citas
-    appointments = relationship("Appointment", back_populates="patient")
-
-class Appointment(Base):
-    __tablename__ = "appointments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"))
-    date = Column(DateTime)
-    service_type = Column(String)  # cleaning, extraction, etc.
-    status = Column(String, default="pending")  # pending, completed, cancelled
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Relación con paciente
-    patient = relationship("Patient", back_populates="appointments")
-    
