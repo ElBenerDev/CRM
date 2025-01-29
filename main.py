@@ -195,6 +195,16 @@ app.add_middleware(
 
 # 2. CORSMiddleware
 app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,  # ¡Verifica que esté definido!
+    session_cookie="session",
+    max_age=1800,
+    same_site="Lax",
+    https_only=settings.ENVIRONMENT == "production"
+)
+
+# 2. CORSMiddleware
+app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
@@ -202,10 +212,10 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# 3. Middlewares personalizados (se ejecutarán después de SessionMiddleware)
-app.add_middleware(AuthMiddleware)
-app.add_middleware(LoggingMiddleware)
+# 3. Middlewares personalizados (ÚLTIMOS en registrarse → PRIMEROS en ejecutarse)
 app.add_middleware(DebugMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(AuthMiddleware)  # ← Este debe ir al FINAL
 
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

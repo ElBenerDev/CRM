@@ -1,23 +1,25 @@
-# En app/middleware/auth.py
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Lista de rutas públicas que no requieren autenticación
-        public_routes = [
+    def __init__(self, app: ASGIApp):
+        # Lista de rutas públicas
+        self.public_routes = {
             "/auth/login",
             "/static",
             "/favicon.ico",
             "/"
-        ]
-        
-        # Si la ruta es pública, no verificar sesión
-        if request.url.path in public_routes:
+        }
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next):
+        # Si es una ruta pública, omitir verificación
+        if any(request.url.path.startswith(route) for route in self.public_routes):
             return await call_next(request)
         
-        # Verificar si hay una sesión activa
+        # Verificar sesión solo para rutas privadas
         if not request.session.get("user_id"):
             return RedirectResponse(url="/auth/login", status_code=303)
         
