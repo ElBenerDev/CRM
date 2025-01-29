@@ -19,11 +19,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         try:
-            # Verificar sesión de manera segura
-            session = request.session
-            user_id = session.get("user_id") if hasattr(request, "session") else None
+            # Verificar si el middleware de sesión está instalado
+            if not hasattr(request, "session"):
+                logger.error("SessionMiddleware no está instalado correctamente")
+                return RedirectResponse(url="/auth/login", status_code=302)
 
+            # Verificar sesión
+            user_id = request.session.get("user_id")
             if not user_id:
+                logger.info("No hay sesión de usuario activa")
                 return RedirectResponse(url="/auth/login", status_code=302)
 
             # Continuar con la solicitud

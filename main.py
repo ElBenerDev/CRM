@@ -18,7 +18,6 @@ from fastapi import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -99,20 +98,7 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
-# Primero SessionMiddleware
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
-    session_cookie="session",
-    max_age=1800,
-    same_site="lax",
-    https_only=False  # Cambia a True en producción
-)
-
-# Después AuthMiddleware
-app.add_middleware(AuthMiddleware)
-
-# Luego los demás middleware
+# 1. Primero CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -121,6 +107,20 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# 2. Luego Session
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,  # Usar la clave secreta de la configuración
+    session_cookie="session",
+    max_age=1800,  # 30 minutos
+    same_site="lax",
+    https_only=settings.ENVIRONMENT == "production"  # True en producción, False en desarrollo
+)
+
+# 3. Después Auth (que necesita la sesión)
+app.add_middleware(AuthMiddleware)
+
+# 4. Finalmente los middleware de utilidad
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(DebugMiddleware)
 
@@ -128,7 +128,6 @@ app.add_middleware(DebugMiddleware)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Incluir routers
-app.include_router(auth_router)
 
 
 @app.middleware("http")
@@ -447,6 +446,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         reload=settings.DEBUG,
-        workers=4,
+        workers=1,
         log_level="info"
     )
