@@ -32,6 +32,7 @@ from app.schemas.schemas import PatientCreate, PatientResponse, LeadCreate, Lead
 from app.middleware.auth import AuthMiddleware
 from app.middleware.debug import DebugMiddleware
 from app.middleware.logging import LoggingMiddleware
+from app.routes.dashboard import router as dashboard_router
 
 import uvicorn
 
