@@ -40,7 +40,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
     return user
 
-@router.get("/dashboard", response_class=HTMLResponse)
+@router.get("/dashboard", response_class=HTMLResponse, name="dashboard")
 async def dashboard(
     request: Request,
     db: Session = Depends(get_db)
@@ -48,14 +48,20 @@ async def dashboard(
     try:
         # Verificar autenticación
         user_id = request.session.get("user_id")
-        if not user_id:
+        authenticated = request.session.get("authenticated")
+        if not user_id or not authenticated:
             logger.warning("Intento de acceso al dashboard sin autenticación")
             return RedirectResponse(url="/auth/login", status_code=303)
 
-        current_user = db.query(User).filter(User.id == user_id).first()
-        if not current_user:
-            logger.warning(f"Usuario no encontrado: {user_id}")
-            request.session.clear()
+        # Obtener el usuario actual
+        try:
+            current_user = db.query(User).filter(User.id == user_id).first()
+            if not current_user:
+                logger.warning(f"Usuario no encontrado: {user_id}")
+                request.session.clear()
+                return RedirectResponse(url="/auth/login", status_code=303)
+        except Exception as e:
+            logger.error(f"Error al consultar el usuario: {str(e)}")
             return RedirectResponse(url="/auth/login", status_code=303)
 
         logger.info(f"Usuario autenticado accediendo al dashboard: {current_user.email}")
@@ -94,6 +100,10 @@ async def dashboard(
             .limit(5)\
             .all()
 
+        # Variables adicionales para la plantilla
+        service_names = ["Limpieza", "Ortodoncia", "Extracción"]  # Ejemplo
+        status_names = ["Programada", "Completada", "Cancelada"]  # Ejemplo
+
         logger.info("Dashboard cargado exitosamente")
         return templates.TemplateResponse(
             "dashboard.html",
@@ -119,5 +129,4 @@ async def dashboard(
         )
     except Exception as e:
         logger.error(f"Error en dashboard: {str(e)}")
-        # En caso de error, redirigir al login en lugar de lanzar una excepción
         return RedirectResponse(url="/auth/login", status_code=303)

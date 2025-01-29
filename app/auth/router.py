@@ -30,9 +30,9 @@ async def login(
 ):
     try:
         logger.info(f"Intento de login para: {username}")
-        logger.info(f"Headers recibidos: {request.headers}")
-        logger.info(f"Cookies recibidas: {request.cookies}")
+        logger.info(f"Headers: {dict(request.headers)}")
         
+        # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         if not user:
             logger.warning(f"Usuario no encontrado: {username}")
@@ -46,6 +46,7 @@ async def login(
                 status_code=401
             )
 
+        # Verificar contraseña
         if not verify_password(password, user.password):
             logger.warning(f"Contraseña incorrecta para: {username}")
             return templates.TemplateResponse(
@@ -58,7 +59,7 @@ async def login(
                 status_code=401
             )
 
-        # Login exitoso - Configuración de sesión
+        # Login exitoso
         logger.info(f"Login exitoso para: {username}")
         
         # Limpiar y configurar sesión
@@ -66,16 +67,20 @@ async def login(
         request.session["user_id"] = str(user.id)
         request.session["authenticated"] = True
         
-        logger.info(f"Sesión configurada: user_id={request.session.get('user_id')}")
+        logger.info(f"Sesión configurada: {dict(request.session)}")
         
-        # Crear respuesta de redirección
+        # Crear respuesta
         response = RedirectResponse(
             url="/dashboard",
             status_code=303
         )
         
-        # Log de redirección
-        logger.info(f"Redirigiendo a: {response.headers['location']}")
+        # Asegurar que las cookies de sesión se establezcan
+        if "session" not in request.cookies:
+            logger.warning("Cookie de sesión no encontrada")
+        
+        logger.info(f"Cookies en la respuesta: {response.headers.get('set-cookie', 'No cookies')}")
+        logger.info(f"Redirigiendo a: {response.headers.get('location')}")
         
         return response
 

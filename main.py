@@ -68,6 +68,7 @@ from app.middleware.auth import AuthMiddleware
 from app.middleware.debug import DebugMiddleware
 from app.middleware.logging import LoggingMiddleware
 
+
 # Importación de servidor
 import uvicorn
 

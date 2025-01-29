@@ -64,11 +64,11 @@
                 
                 if (response.redirected) {
                     console.log('Redirigiendo a:', response.url);
-                    window.location.href = response.url;
+                    window.location.href = response.url; // Redirigir manualmente
                     return;
                 }
                 
-                // Si no hay redirección, intentar procesar la respuesta
+                // Si no hay redirección, mostrar errores
                 return response.text().then(text => {
                     if (!response.ok) {
                         throw new Error(text);
