@@ -188,7 +188,7 @@ app.add_middleware(AuthMiddleware)
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
+    secret_key=os.environ.get("SECRET_KEY"),
     session_cookie="session",
     max_age=1800,
     same_site="lax",

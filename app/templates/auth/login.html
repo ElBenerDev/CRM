@@ -10,37 +10,21 @@
 <body>
     <div class="login-container">
         <!-- Agregar validación del lado del cliente y control de reenvío -->
-        <form method="POST" action="/auth/login" id="loginForm" novalidate>
+        <form method="POST" action="/auth/login" id="loginForm" enctype="application/x-www-form-urlencoded" novalidate>
             <div class="form-group">
                 <label for="username">Email</label>
-                <input 
-                    type="email" 
-                    id="username" 
-                    name="username" 
-                    required 
-                    autocomplete="email"
-                    value="{{ username or '' }}"
-                >
+                <input type="email" id="username" name="username" required>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    required 
-                    autocomplete="current-password"
-                >
+                <input type="password" id="password" name="password" required>
             </div>
             {% if error %}
-            <div class="error-message" role="alert">
+            <div class="error-message">
                 {{ error }}
             </div>
             {% endif %}
-            <button type="submit" class="btn-login" id="submitButton">
-                <span class="button-text">Iniciar sesión</span>
-                <span class="spinner" style="display: none;">Cargando...</span>
-            </button>
+            <button type="submit" class="btn-login">Login</button>
         </form>
     </div>
 
