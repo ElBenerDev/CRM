@@ -185,10 +185,10 @@ async def log_requests(request: Request, call_next):
 # Middleware stack (orden importante)
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.SECRET_KEY,  # Usar la clave de settings.py
+    secret_key=settings.SECRET_KEY,
     session_cookie="session",
     max_age=1800,
-    same_site="Lax",  # Corregir a "Lax" con mayúscula
+    same_site="Lax",
     https_only=settings.ENVIRONMENT == "production"
 )
 
@@ -200,6 +200,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Los demás middlewares DEBEN ir DESPUÉS de SessionMiddleware
 app.add_middleware(AuthMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(DebugMiddleware)
