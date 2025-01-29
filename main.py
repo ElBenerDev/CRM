@@ -6,6 +6,8 @@ from pathlib import Path
 import traceback
 import secrets
 
+from app.auth.dependencies import get_current_user_id
+
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
@@ -312,6 +314,44 @@ async def home(request: Request, db: Session = Depends(get_db)):
         logger.error(f"Error en home: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
     
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(
+    request: Request,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    try:
+        current_user = db.query(User).filter(User.id == user_id).first()
+        
+        # Estadísticas para el dashboard
+        total_patients = db.query(func.count(Patient.id)).scalar() or 0
+        
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        appointments_today = db.query(func.count(Appointment.id))\
+            .filter(Appointment.date.between(today_start, today_end))\
+            .scalar() or 0
+        
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "user": {
+                    "name": current_user.name,
+                    "email": current_user.email,
+                    "role": "Admin"
+                },
+                "active": "dashboard",
+                "stats": {
+                    "total_patients": total_patients,
+                    "appointments_today": appointments_today
+                }
+            }
+        )
+    except Exception as e:
+        print(f"Error en dashboard: {str(e)}")
+        return RedirectResponse(url="/auth/login", status_code=302)    
+
 # Rutas de pacientes
 @app.get("/patients", response_class=HTMLResponse)
 async def patients_page(request: Request, db: Session = Depends(get_db)):
@@ -521,9 +561,7 @@ async def logout(request: Request):
 # Redirección de la ruta raíz
 @app.get("/")
 async def root(request: Request):
-    user_id = request.session.get("user_id")
-    print(f"🔍 Verificando sesión en root: {user_id}")
-    if user_id:
+    if request.session.get("user_id"):
         return RedirectResponse(url="/dashboard", status_code=302)
     return RedirectResponse(url="/auth/login", status_code=302)
 
