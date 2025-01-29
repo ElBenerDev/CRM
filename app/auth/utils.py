@@ -47,16 +47,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    user_id = request.session.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    
-    return user
+async def get_current_user(request: Request, db: Session = Depends(get_db)):
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="No autenticado")
+        
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="Usuario no encontrado")
+        
+        return user
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Error de autenticación")
