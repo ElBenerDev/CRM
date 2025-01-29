@@ -41,10 +41,14 @@ async def login(
             )
 
         # Establecer la sesión
+        request.session.clear()  # Limpia la sesión anterior
         request.session["user_id"] = str(user.id)
+        request.session["user_email"] = user.email
         
         # Redireccionar al dashboard
-        return RedirectResponse(url="/", status_code=303)
+        response = RedirectResponse(url="/", status_code=303)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")

@@ -96,43 +96,31 @@ templates.env.globals["url_for"] = url_for
 app = FastAPI(
     title=settings.APP_NAME,
     description="Sistema CRM para gestión dental",
-    version=settings.APP_VERSION,
+    version=settings.APP_VERSION
 )
 
-# Agregar middleware en orden correcto
-app.add_middleware(SessionMiddleware, 
+# Configuración de middleware - NUEVO ORDEN Y CONFIGURACIÓN
+app.add_middleware(
+    SessionMiddleware,
     secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
-    session_cookie="session"
+    session_cookie="session",
+    max_age=1800,  # 30 minutos
+    same_site="lax",  # Importante para seguridad
+    https_only=False  # Cambia a True en producción
 )
-app.add_middleware(CORSMiddleware, 
+
+app.add_middleware(AuthMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
-app.add_middleware(AuthMiddleware)
 
-# Configuración de middleware
-middleware = [
-    Middleware(
-        SessionMiddleware,
-        secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
-        session_cookie="session",
-        same_site="lax",
-        https_only=True,
-        max_age=1800
-    ),
-    Middleware(CORSMiddleware, 
-        allow_origins=["*"], 
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"]
-    ),
-    Middleware(AuthMiddleware),
-    Middleware(LoggingMiddleware),
-    Middleware(DebugMiddleware)
-]
-
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(DebugMiddleware)
 
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
