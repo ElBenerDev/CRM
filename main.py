@@ -95,16 +95,20 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
-# 1. CORS middleware (será el primero en ejecutarse)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+# 1. Primero el middleware de logging de requests
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("\n" + "="*50)
+    logger.info(f"🔄 Nueva solicitud: {request.method} {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"📤 Respuesta: {response.status_code}")
+    return response
 
-# 2. Session middleware (se ejecuta después de CORS, antes que Auth)
+# 2. Debug y Logging middleware
+app.add_middleware(DebugMiddleware)
+app.add_middleware(LoggingMiddleware)
+
+# 3. Session middleware (debe estar antes que Auth)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
@@ -114,22 +118,17 @@ app.add_middleware(
     https_only=settings.ENVIRONMENT == "production"
 )
 
-# 3. Auth middleware (se ejecuta después de session)
+# 4. Auth middleware (después de Session)
 app.add_middleware(AuthMiddleware)
 
-# 4. Debug y Logging middleware
-app.add_middleware(DebugMiddleware)
-app.add_middleware(LoggingMiddleware)
-
-# 5. Request logging (será el último en ejecutarse)
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info("\n" + "="*50)
-    logger.info(f"🔄 Nueva solicitud: {request.method} {request.url.path}")
-    response = await call_next(request)
-    logger.info(f"📤 Respuesta: {response.status_code}")
-    return response
-
+# 5. CORS middleware (debe ser el último en agregar, primero en ejecutar)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
