@@ -95,32 +95,7 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
-# 1. Primero CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
-
-# 2. Luego Session
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
-    session_cookie="session",
-    max_age=1800,  # 30 minutos
-    same_site="lax",
-    https_only=settings.ENVIRONMENT == "production"
-)
-
-# 3. Después Auth
-app.add_middleware(AuthMiddleware)
-
-# 4. Middleware de utilidad
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(DebugMiddleware)
-
+# 1. Primero el middleware de logging de requests
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info("\n" + "="*50)
@@ -128,6 +103,32 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     logger.info(f"📤 Respuesta: {response.status_code}")
     return response
+
+# 2. Debug y Logging middleware
+app.add_middleware(DebugMiddleware)
+app.add_middleware(LoggingMiddleware)
+
+# 3. Auth middleware
+app.add_middleware(AuthMiddleware)
+
+# 4. Session middleware (debe estar antes que Auth)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
+    session_cookie="session",
+    max_age=1800,
+    same_site="lax",
+    https_only=settings.ENVIRONMENT == "production"
+)
+
+# 5. CORS middleware (debe ser el último en agregar, primero en ejecutar)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
