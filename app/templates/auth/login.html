@@ -9,9 +9,12 @@
 <body>
     <div class="login-container">
         <form method="POST" action="/auth/login" id="loginForm" enctype="application/x-www-form-urlencoded">
+            <!-- Add CSRF token if required -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            
             <div class="form-group">
-                <label for="username">Email</label>
-                <input type="email" id="username" name="username" required>
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
@@ -53,21 +56,24 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json, text/html'
                 },
-                credentials: 'include',  // ← ¡Clave para cookies!
+                credentials: 'include',  // Include cookies for session management
                 body: urlEncodedData
             })
             .then(response => {
                 if (response.redirected) {
-                    // Limpiar caché y redirigir
+                    // Redirect to the dashboard or another page
                     window.location.replace(response.url + "?t=" + Date.now());
+                } else if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.detail || "Error en el login");
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error en login:', error);
-                // Mostrar mensaje de error genérico
                 const errorDiv = document.querySelector('.error-message');
                 if (errorDiv) {
-                    errorDiv.textContent = "Error de conexión con el servidor";
+                    errorDiv.textContent = error.message || "Error de conexión con el servidor";
                 }
                 submitButton.disabled = false;
                 buttonText.style.display = 'inline';

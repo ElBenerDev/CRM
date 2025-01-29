@@ -71,6 +71,12 @@ from app.middleware.logging import LoggingMiddleware
 # Importación de servidor
 import uvicorn
 
+
+from fastapi import Request, Form, Depends, HTTPException, status
+from app.models.models import User
+from app.utils.db import get_db
+from app.auth.utils import verify_password
+
 # Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
@@ -173,6 +179,11 @@ app = FastAPI(
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["url_for"] = url_for
 
+def validate_csrf_token(token: str) -> bool:
+    # Implement your CSRF token validation logic here
+    return token == "valid_token"  # Replace with actual validation logic
+
+
 # Middleware configuration
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -217,6 +228,45 @@ app.include_router(patients_router, tags=["patients"])
 app.include_router(appointments_router, tags=["appointments"])
 app.include_router(leads_router, tags=["leads"])
 app.include_router(settings_router, tags=["settings"])
+
+
+
+
+
+
+
+@app.post("/auth/login")
+async def login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # Validate email and password
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email and password are required"
+        )
+
+    # Check if user exists
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or password"
+        )
+
+    # Verify password
+    if not verify_password(password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or password"
+        )
+
+    # Set session
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 # Eventos de la aplicación
 @app.on_event("startup")
