@@ -124,10 +124,7 @@ app.add_middleware(AuthMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(DebugMiddleware)
 
-# Montar archivos estáticos
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Incluir routers
 
 
 @app.middleware("http")
@@ -446,6 +443,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         reload=settings.DEBUG,
-        workers=1,
+        workers=1, 
         log_level="info"
     )
