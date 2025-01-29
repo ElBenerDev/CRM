@@ -1,39 +1,21 @@
-import logging
+# app/middleware/auth.py
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+from app.utils.logging_config import logger
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Lista de rutas públicas
-        public_paths = ["/auth/login", "/auth/token", "/static", "/favicon.ico"]
+        # Rutas que no requieren autenticación
+        public_paths = ["/auth/login", "/auth/token", "/static"]
         
-        # Permitir rutas públicas
+        # Si es una ruta pública, permitir acceso
         if any(request.url.path.startswith(path) for path in public_paths):
             return await call_next(request)
 
-        try:
-            # Verificar si el middleware de sesión está instalado
-            if not hasattr(request, "session"):
-                logger.error("SessionMiddleware no está instalado correctamente")
-                return RedirectResponse(url="/auth/login", status_code=302)
-
-            # Verificar sesión
-            user_id = request.session.get("user_id")
-            if not user_id:
-                logger.info("No hay sesión de usuario activa")
-                return RedirectResponse(url="/auth/login", status_code=302)
-
-            # Continuar con la solicitud
-            response = await call_next(request)
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error en AuthMiddleware: {str(e)}")
+        # Verificar si hay sesión
+        if not request.session.get("user_id"):
+            print("No hay sesión activa")
             return RedirectResponse(url="/auth/login", status_code=302)
+
+        return await call_next(request)

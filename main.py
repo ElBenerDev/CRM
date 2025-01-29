@@ -22,13 +22,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-# Importaciones locales
-from app.auth.utils import (
-    SECRET_KEY, 
-    ALGORITHM, 
-    get_current_user, 
-    ACCESS_TOKEN_EXPIRE_MINUTES
-)
 from app.auth.router import router as auth_router
 from config.settings import settings
 from app.utils.db import get_db, engine, Base, verify_db_connection
@@ -61,17 +54,22 @@ for dir_path in [
     TEMPLATES_DIR / "errors",
 ]:
     dir_path.mkdir(parents=True, exist_ok=True)
+
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado"
+        )
     
-async def get_current_user_from_request(request: Request, db: Session) -> Optional[User]:
-    try:
-        token = request.cookies.get("access_token")
-        if not token:
-            return None
-        if token.startswith("Bearer "):
-            token = token.split(" ")[1]
-        return await get_current_user(db=db, token=token)
-    except:
-        return None
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario no encontrado"
+        )
+    return user
 
 def init_db():
     try:
@@ -91,7 +89,6 @@ def url_for(request: Request, name: str, **params):
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["url_for"] = url_for
 
-
 app = FastAPI(
     title=settings.APP_NAME,
     description="Sistema CRM para gestión dental",
@@ -110,22 +107,19 @@ app.add_middleware(
 # 2. Luego Session
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.SECRET_KEY,  # Usar la clave secreta de la configuración
+    secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
     session_cookie="session",
     max_age=1800,  # 30 minutos
     same_site="lax",
-    https_only=settings.ENVIRONMENT == "production"  # True en producción, False en desarrollo
+    https_only=settings.ENVIRONMENT == "production"
 )
 
-# 3. Después Auth (que necesita la sesión)
+# 3. Después Auth
 app.add_middleware(AuthMiddleware)
 
-# 4. Finalmente los middleware de utilidad
+# 4. Middleware de utilidad
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(DebugMiddleware)
-
-
-
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -135,13 +129,11 @@ async def log_requests(request: Request, call_next):
     logger.info(f"📤 Respuesta: {response.status_code}")
     return response
 
-
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Incluir routers
 app.include_router(auth_router)
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -150,7 +142,6 @@ async def startup_event():
     logger.info(f"🔧 Debug: {settings.DEBUG}")
     init_db()
 
-# Manejadores de excepciones
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     if exc.status_code == 405:
@@ -205,13 +196,18 @@ async def generic_exception_handler(request: Request, exc: Exception):
         },
         status_code=status_code
     )
+
 @app.get("/", response_class=HTMLResponse)
-async def home(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def home(request: Request, db: Session = Depends(get_db)):
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="/auth/login", status_code=302)
+            
+        current_user = db.query(User).filter(User.id == user_id).first()
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=302)
+
         # Estadísticas
         total_patients = db.query(func.count(Patient.id)).scalar() or 0
         
@@ -262,14 +258,18 @@ async def home(
     except Exception as e:
         logger.error(f"Error en home: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
-    
+
 @app.post("/api/patients/", response_model=PatientResponse)
 async def create_patient(
     patient: PatientCreate, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    request: Request,
+    db: Session = Depends(get_db)
 ):
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="No autenticado")
+
         new_patient = Patient(
             name=patient.name,
             email=patient.email,
@@ -278,7 +278,7 @@ async def create_patient(
             notes=patient.notes,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
-            created_by=current_user.id
+            created_by=user_id
         )
         
         db.add(new_patient)
@@ -294,14 +294,17 @@ async def create_patient(
         )
 
 @app.get("/patients", response_class=HTMLResponse)
-async def patients_page(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def patients_page(request: Request, db: Session = Depends(get_db)):
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="/auth/login", status_code=302)
+            
+        current_user = db.query(User).filter(User.id == user_id).first()
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=302)
+
         patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
-        logger.info(f"Pacientes encontrados: {len(patients)}")
         
         return templates.TemplateResponse(
             "patients.html",
@@ -323,12 +326,16 @@ async def patients_page(
 
 @app.get("/leads", response_class=HTMLResponse)
 @app.head("/leads")
-async def leads_page(
-    request: Request, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def leads_page(request: Request, db: Session = Depends(get_db)):
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="/auth/login", status_code=302)
+            
+        current_user = db.query(User).filter(User.id == user_id).first()
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=302)
+
         leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
         
         return templates.TemplateResponse(
@@ -351,10 +358,14 @@ async def leads_page(
 @app.post("/api/leads/", response_model=LeadResponse)
 async def create_lead(
     lead: LeadCreate, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    request: Request,
+    db: Session = Depends(get_db)
 ):
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="No autenticado")
+
         new_lead = Lead(
             name=lead.name,
             email=lead.email,
@@ -373,14 +384,19 @@ async def create_lead(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @app.get("/settings", response_class=HTMLResponse)
 @app.head("/settings")
-async def settings_page(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
+async def settings_page(request: Request, db: Session = Depends(get_db)):
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="/auth/login", status_code=302)
+            
+        current_user = db.query(User).filter(User.id == user_id).first()
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=302)
+
         return templates.TemplateResponse(
             "settings.html",
             {
@@ -399,15 +415,19 @@ async def settings_page(
 
 @app.get("/appointments", response_class=HTMLResponse)
 @app.head("/appointments")
-async def appointments_page(
-    request: Request, 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def appointments_page(request: Request, db: Session = Depends(get_db)):
     if request.method == "HEAD":
         return HTMLResponse(content="")
         
     try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="/auth/login", status_code=302)
+            
+        current_user = db.query(User).filter(User.id == user_id).first()
+        if not current_user:
+            return RedirectResponse(url="/auth/login", status_code=302)
+
         appointments = db.query(Appointment)\
             .order_by(Appointment.date.desc())\
             .all()
@@ -431,17 +451,11 @@ async def appointments_page(
     except Exception as e:
         logger.error(f"Error en appointments_page: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
-    
+
 @app.get("/auth/logout")
-async def logout():
-    response = RedirectResponse(url="/auth/login", status_code=302)
-    response.delete_cookie(
-        key="access_token",
-        path="/",
-        secure=True,
-        httponly=True
-    )
-    return response
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/auth/login", status_code=302)
 
 # Configuración de inicio de la aplicación
 if __name__ == "__main__":

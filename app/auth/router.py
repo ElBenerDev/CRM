@@ -1,20 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+# app/auth/router.py
+from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from fastapi.security import OAuth2PasswordBearer
-from starlette.middleware.sessions import SessionMiddleware
-import os
-from app.core.config import settings
-from app.utils.logging_config import logger
-
 from app.utils.db import get_db
 from app.models.models import User
 from .utils import verify_password
+from app.utils.logging_config import logger
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
+templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/login")
 async def login_page(request: Request):
@@ -28,34 +23,38 @@ async def login(
     db: Session = Depends(get_db)
 ):
     try:
+        # Imprimir información de depuración
+        print(f"Intento de login para: {username}")
+        
         # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         
-        if not user or not verify_password(password, user.password):
+        if not user:
+            print("Usuario no encontrado")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Email o contraseña incorrectos"
-                }
+                {"request": request, "error": "Email o contraseña incorrectos"}
             )
 
-        # Establecer la sesión
-        request.session.clear()  # Limpia la sesión anterior
+        if not verify_password(password, user.password):
+            print("Contraseña incorrecta")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {"request": request, "error": "Email o contraseña incorrectos"}
+            )
+
+        print("Login exitoso")
+        
+        # Guardar en sesión
         request.session["user_id"] = str(user.id)
         request.session["user_email"] = user.email
         
         # Redireccionar al dashboard
-        response = RedirectResponse(url="/", status_code=303)
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        return response
+        return RedirectResponse(url="/", status_code=303)
 
     except Exception as e:
-        logger.error(f"Error en login: {str(e)}")
+        print(f"Error en login: {str(e)}")
         return templates.TemplateResponse(
             "auth/login.html",
-            {
-                "request": request,
-                "error": "Error interno del servidor"
-            }
+            {"request": request, "error": "Error interno del servidor"}
         )
