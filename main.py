@@ -108,7 +108,10 @@ async def log_requests(request: Request, call_next):
 app.add_middleware(DebugMiddleware)
 app.add_middleware(LoggingMiddleware)
 
-# 3. Session middleware (debe estar antes que Auth)
+# 3. Auth middleware
+app.add_middleware(AuthMiddleware)
+
+# 4. Session middleware (debe estar antes que Auth)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
@@ -117,9 +120,6 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.ENVIRONMENT == "production"
 )
-
-# 4. Auth middleware (después de Session)
-app.add_middleware(AuthMiddleware)
 
 # 5. CORS middleware (debe ser el último en agregar, primero en ejecutar)
 app.add_middleware(
