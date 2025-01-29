@@ -29,53 +29,43 @@ async def login(
         
         # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
-        logger.info(f"Usuario encontrado: {user is not None}")
         
         if not user:
             logger.warning(f"Usuario no encontrado: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"},
-                status_code=401
+                {"request": request, "error": "Email o contraseña incorrectos"}
             )
 
-        # Log del hash almacenado (solo para debugging)
-        logger.info(f"Hash almacenado: {user.password}")
-        
-        # Verificar contraseña
-        is_valid = verify_password(password, user.password)
-        logger.info(f"Resultado de verificación de contraseña: {is_valid}")
-
-        if not is_valid:
+        if not verify_password(password, user.password):
             logger.warning(f"Contraseña incorrecta para usuario: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"},
-                status_code=401
+                {"request": request, "error": "Email o contraseña incorrectos"}
             )
 
         # Log de login exitoso
         logger.info(f"Login exitoso para usuario: {username}")
 
-        try:
-            # Guardar en sesión
-            request.session.clear()  # Limpiar sesión anterior si existe
-            request.session["user_id"] = str(user.id)
-            request.session["user_email"] = user.email
-            logger.info(f"Sesión guardada. user_id: {request.session.get('user_id')}, email: {request.session.get('user_email')}")
-        except Exception as e:
-            logger.error(f"Error al guardar sesión: {str(e)}")
-            raise
-
-        # Redireccionar al dashboard con logs
-        logger.info("Redirigiendo al dashboard...")
+        # Guardar en sesión
+        request.session.clear()  # Limpiar sesión anterior
+        request.session["user_id"] = str(user.id)
+        request.session["user_email"] = user.email
+        
+        # Log de sesión guardada
+        logger.info(f"Sesión guardada para usuario: {username}")
+        
+        # Crear respuesta de redirección
         response = RedirectResponse(url="/", status_code=303)
+        
+        # Forzar que la sesión se guarde antes de la redirección
+        await request.session.save()
+        
         return response
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")
-        logger.error(f"Traceback completo: {traceback.format_exc()}")
         return templates.TemplateResponse(
             "auth/login.html",
-            {"request": request, "error": f"Error interno del servidor: {str(e)}"}
+            {"request": request, "error": "Error interno del servidor"}
         )
