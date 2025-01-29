@@ -30,57 +30,34 @@ async def login(
 ):
     try:
         logger.info(f"Intento de login para: {username}")
-        logger.info(f"Headers: {dict(request.headers)}")
         
-        # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         if not user:
             logger.warning(f"Usuario no encontrado: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Usuario o contraseña incorrectos",
-                    "username": username
-                },
+                {"request": request, "error": "Credenciales inválidas", "username": username},
                 status_code=401
             )
 
-        # Verificar contraseña
         if not verify_password(password, user.password):
             logger.warning(f"Contraseña incorrecta para: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Usuario o contraseña incorrectos",
-                    "username": username
-                },
+                {"request": request, "error": "Credenciales inválidas", "username": username},
                 status_code=401
             )
 
-        # Login exitoso
-        logger.info(f"Login exitoso para: {username}")
-        
-        # Limpiar y configurar sesión
+        # Configurar sesión
         request.session.clear()
         request.session["user_id"] = str(user.id)
         request.session["authenticated"] = True
         
-        logger.info(f"Sesión configurada: {dict(request.session)}")
+        # Forzar la escritura de la cookie en la respuesta
+        response = RedirectResponse(url="/dashboard", status_code=303)
         
-        # Crear respuesta
-        response = RedirectResponse(
-            url="/dashboard",
-            status_code=303
-        )
-        
-        # Asegurar que las cookies de sesión se establezcan
-        if "session" not in request.cookies:
-            logger.warning("Cookie de sesión no encontrada")
-        
-        logger.info(f"Cookies en la respuesta: {response.headers.get('set-cookie', 'No cookies')}")
-        logger.info(f"Redirigiendo a: {response.headers.get('location')}")
+        # Asegurar que la cookie se envía (opcional, pero útil para depuración)
+        logger.info(f"Cookie de sesión generada: {request.session.get('session')}")
         
         return response
 
@@ -89,10 +66,6 @@ async def login(
         logger.error(f"Traceback: {traceback.format_exc()}")
         return templates.TemplateResponse(
             "auth/login.html",
-            {
-                "request": request,
-                "error": "Error interno del servidor",
-                "username": username
-            },
+            {"request": request, "error": "Error interno del servidor"},
             status_code=500
         )

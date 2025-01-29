@@ -39,47 +39,31 @@
             const submitButton = document.getElementById('submitButton');
             const buttonText = submitButton.querySelector('.button-text');
             const spinner = submitButton.querySelector('.spinner');
-    
-            // Deshabilitar el botón y mostrar spinner
+        
             submitButton.disabled = true;
             buttonText.style.display = 'none';
             spinner.style.display = 'inline';
-    
-            // Crear FormData y convertir a URLSearchParams
+        
             const formData = new FormData(form);
             const urlEncodedData = new URLSearchParams(formData).toString();
-    
-            // Enviar el formulario usando fetch
+        
             fetch('/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json, text/html'
                 },
-                credentials: 'include',  // ← ¡Clave para enviar cookies!
+                credentials: 'include',  // ← ¡Clave para cookies!
                 body: urlEncodedData
             })
             .then(response => {
-                console.log('Status:', response.status);
-                
                 if (response.redirected) {
-                    console.log('Redirigiendo a:', response.url);
-                    window.location.href = response.url; // Redirigir manualmente
-                    return;
+                    // Limpiar caché y redirigir
+                    window.location.replace(response.url + "?t=" + Date.now());
                 }
-                
-                // Si no hay redirección, mostrar errores
-                return response.text().then(text => {
-                    if (!response.ok) {
-                        throw new Error(text);
-                    }
-                    // Si llegamos aquí, actualizar la página para mostrar errores
-                    document.documentElement.innerHTML = text;
-                });
             })
             .catch(error => {
                 console.error('Error en login:', error);
-                // Restaurar el botón
                 submitButton.disabled = false;
                 buttonText.style.display = 'inline';
                 spinner.style.display = 'none';

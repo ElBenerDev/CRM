@@ -190,7 +190,7 @@ app.add_middleware(
     session_cookie="session",
     max_age=1800,
     same_site="Lax",
-    https_only=settings.ENVIRONMENT == "production"
+    https_only=True
 )
 
 # 2. CORSMiddleware
@@ -206,7 +206,7 @@ app.add_middleware(
 # 2. CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["https://crm-oarr.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
