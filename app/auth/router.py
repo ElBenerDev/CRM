@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def login_page(request: Request):
     return templates.TemplateResponse("auth/login.html", {"request": request})
 
-@router.post("/login")  # Cambiado de /token a /login
+@router.post("/login")
 async def login(
     request: Request,
     username: str = Form(...),
@@ -23,21 +23,39 @@ async def login(
     db: Session = Depends(get_db)
 ):
     try:
+        # Log de intento de login
+        logger.info(f"Intento de login para usuario: {username}")
+        
         # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         
-        if not user or not verify_password(password, user.password):
+        if not user:
+            logger.warning(f"Usuario no encontrado: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"}
             )
 
+        if not verify_password(password, user.password):
+            logger.warning(f"Contraseña incorrecta para usuario: {username}")
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {"request": request, "error": "Email o contraseña incorrectos"}
+            )
+
+        # Log de login exitoso
+        logger.info(f"Login exitoso para usuario: {username}")
+
         # Guardar en sesión
         request.session["user_id"] = str(user.id)
         request.session["user_email"] = user.email
         
+        # Log de sesión guardada
+        logger.info(f"Sesión guardada para usuario: {username}")
+        
         # Redireccionar al dashboard
-        return RedirectResponse(url="/", status_code=303)
+        response = RedirectResponse(url="/", status_code=303)
+        return response
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")
