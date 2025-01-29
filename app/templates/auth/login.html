@@ -56,7 +56,7 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json, text/html'
                 },
-                credentials: 'same-origin', // Importante para las cookies de sesión
+                credentials: 'include', // Importante para las cookies de sesión
                 body: urlEncodedData
             })
             .then(response => {

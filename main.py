@@ -68,10 +68,8 @@ from app.middleware.auth import AuthMiddleware
 from app.middleware.debug import DebugMiddleware
 from app.middleware.logging import LoggingMiddleware
 
-
 # Importación de servidor
 import uvicorn
-
 
 # Configuración de logging
 logging.basicConfig(
@@ -185,27 +183,26 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Middleware stack (orden importante)
-app.add_middleware(AuthMiddleware)
-
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.environ.get("SECRET_KEY"),
+    secret_key=settings.SECRET_KEY,  # Usar la clave de settings.py
     session_cookie="session",
     max_age=1800,
-    same_site="lax",
+    same_site="Lax",  # Corregir a "Lax" con mayúscula
     https_only=settings.ENVIRONMENT == "production"
 )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
+app.add_middleware(AuthMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(DebugMiddleware)
-
 
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -216,7 +213,6 @@ app.include_router(patients_router, tags=["patients"])
 app.include_router(appointments_router, tags=["appointments"])
 app.include_router(leads_router, tags=["leads"])
 app.include_router(settings_router, tags=["settings"])
-
 
 # Eventos de la aplicación
 @app.on_event("startup")
@@ -287,7 +283,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
         },
         status_code=status_code
     )
-    
     
 @app.get("/")
 async def root(request: Request):
@@ -580,10 +575,8 @@ if __name__ == "__main__":
             host="0.0.0.0",
             port=port,
             reload=settings.DEBUG,
-            workers=4,  # Aumentado a 4 workers para mejor rendimiento
+            workers=4,
             log_level="info"
         )
     except Exception as e:
         logger.error(f"Error iniciando la aplicación: {str(e)}")
-        
-    
