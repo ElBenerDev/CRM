@@ -11,7 +11,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 logger = logging.getLogger(__name__)
 
-@router.get("/login", response_class=HTMLResponse)
+@router.get("/login", response_class=HTMLResponse, name="login")
 async def login_page(request: Request):
     logger.info("Accediendo a página de login")
     return templates.TemplateResponse(
@@ -19,7 +19,7 @@ async def login_page(request: Request):
         {"request": request}
     )
 
-@router.post("/login")
+@router.post("/login", name="login_post")
 async def login(
     request: Request,
     username: str = Form(...),

@@ -10,7 +10,7 @@
 <body>
     <div class="login-container">
         <!-- Agregar validación del lado del cliente y control de reenvío -->
-        <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" novalidate>
+        <form method="POST" action="/auth/login" id="loginForm" novalidate>
             <div class="form-group">
                 <label for="username">Email</label>
                 <input 
