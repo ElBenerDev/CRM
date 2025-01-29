@@ -5,7 +5,8 @@ import logging
 from pathlib import Path
 import traceback
 import secrets
-
+from app.auth.router import router as auth_router
+from app.routes.dashboard import router as dashboard_router
 from app.auth.dependencies import get_current_user_id
 
 from starlette.middleware import Middleware
@@ -35,7 +36,7 @@ from app.routes.leads import router as leads_router
 from app.routes.settings import router as settings_router
 from config.settings import settings
 from app.utils.db import get_db, engine, Base, verify_db_connection, SessionLocal
-from app.auth.utils import get_password_hash, get_current_user
+from app.auth.utils import get_password_hash
 from app.utils.logger import logger
 from app.models.models import Patient, Appointment, Lead, User
 from app.schemas.schemas import PatientCreate, PatientResponse, LeadCreate, LeadResponse
@@ -178,8 +179,11 @@ app.add_middleware(
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(dashboard_router, tags=["dashboard"])
+
 # Incluir routers
-app.include_router(auth_router, prefix="/auth")
+app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(patients_router)
 app.include_router(appointments_router)

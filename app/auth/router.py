@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+import traceback
 
 from app.utils.db import get_db
 from app.models.models import User
@@ -21,49 +22,34 @@ async def login_page(request: Request):
 @router.post("/login")
 async def login(
     request: Request,
-    email: str = Form(...),
+    username: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     try:
-        # Buscar usuario por email
-        user = db.query(User).filter(User.email == email).first()
+        print("\n===== INTENTO DE LOGIN =====")
+        print(f"👤 Usuario: {username}")
         
-        # Verificar si el usuario existe y la contraseña es correcta
-        if not user or not verify_password(password, user.password):
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Email o contraseña incorrectos"
-                },
-                status_code=400
-            )
+        user = db.query(User).filter(User.email == username).first()
+        print(f"🔍 Usuario encontrado: {'✅' if user else '❌'}")
         
-        # Si todo está bien, crear la sesión
-        request.session["user_id"] = user.id
-        request.session["user_name"] = user.name
-        request.session["user_email"] = user.email
+        if user and verify_password(password, user.password):
+            print("✅ Login exitoso")
+            request.session["user_id"] = str(user.id)
+            print(f"✅ Session ID establecido: {request.session['user_id']}")
+            response = RedirectResponse(url="/dashboard", status_code=302)
+            print(f"🔄 Redirigiendo a: {response.headers.get('location')}")
+            return response
         
-        # Actualizar último login
-        user.last_login = datetime.now(timezone.utc)
-        db.commit()
-        
-        # Redirigir al dashboard
-        return RedirectResponse(url="/dashboard", status_code=302)
-        
-    except Exception as e:
-        print(f"Error en login: {str(e)}")
+        print("❌ Credenciales inválidas")
         return templates.TemplateResponse(
             "auth/login.html",
-            {
-                "request": request,
-                "error": "Error al iniciar sesión"
-            },
-            status_code=500
+            {"request": request, "error": "Credenciales inválidas"}
         )
-
-@router.get("/logout")
-async def logout(request: Request):
-    request.session.clear()
-    return RedirectResponse(url="/auth/login", status_code=302)
+    except Exception as e:
+        print(f"❌ Error en login: {str(e)}")
+        print(traceback.format_exc())  # Añade esto para ver el error completo
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "error": str(e)}
+        )
