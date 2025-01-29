@@ -135,6 +135,14 @@ async def log_requests(request: Request, call_next):
     logger.info(f"📤 Respuesta: {response.status_code}")
     return response
 
+
+# Montar archivos estáticos
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Incluir routers
+app.include_router(auth_router)
+
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Aplicación iniciada")

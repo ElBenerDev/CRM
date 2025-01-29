@@ -3,6 +3,7 @@ from typing import List
 
 class Settings(BaseSettings):
     # Información de la aplicación
+    SECRET_KEY: str = "8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z"
     APP_NAME: str = "Dental CRM"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
