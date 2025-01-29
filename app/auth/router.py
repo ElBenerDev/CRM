@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def login_page(request: Request):
     return templates.TemplateResponse("auth/login.html", {"request": request})
 
-@router.post("/token")
+@router.post("/login")  # Cambiado de /token a /login
 async def login(
     request: Request,
     username: str = Form(...),
@@ -23,28 +23,15 @@ async def login(
     db: Session = Depends(get_db)
 ):
     try:
-        # Imprimir información de depuración
-        print(f"Intento de login para: {username}")
-        
         # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         
-        if not user:
-            print("Usuario no encontrado")
+        if not user or not verify_password(password, user.password):
             return templates.TemplateResponse(
                 "auth/login.html",
                 {"request": request, "error": "Email o contraseña incorrectos"}
             )
 
-        if not verify_password(password, user.password):
-            print("Contraseña incorrecta")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
-            )
-
-        print("Login exitoso")
-        
         # Guardar en sesión
         request.session["user_id"] = str(user.id)
         request.session["user_email"] = user.email
@@ -53,7 +40,7 @@ async def login(
         return RedirectResponse(url="/", status_code=303)
 
     except Exception as e:
-        print(f"Error en login: {str(e)}")
+        logger.error(f"Error en login: {str(e)}")
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Error interno del servidor"}

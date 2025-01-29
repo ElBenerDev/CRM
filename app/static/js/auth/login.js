@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 const formData = new FormData(this);
-                const response = await fetch('/auth/token', {
+                const response = await fetch('/auth/login', {  // Cambiado de /auth/token a /auth/login
                     method: 'POST',
                     body: formData,
                     redirect: 'follow'
