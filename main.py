@@ -142,8 +142,11 @@ app.include_router(auth_router)
 def init_admin_user():
     try:
         db = SessionLocal()
+        # Verificar si existe el usuario admin
         admin = db.query(User).filter(User.email == "admin@admin.com").first()
+        
         if not admin:
+            print("Creando usuario admin...")
             admin = User(
                 email="admin@admin.com",
                 password=get_password_hash("admin123"),
@@ -152,10 +155,21 @@ def init_admin_user():
                 is_admin=True
             )
             db.add(admin)
-            db.commit()
-            print("✅ Usuario admin creado correctamente")
+            try:
+                db.commit()
+                print("✅ Usuario admin creado correctamente")
+            except Exception as e:
+                db.rollback()
+                print(f"❌ Error al guardar usuario admin: {str(e)}")
         else:
             print("ℹ️ El usuario admin ya existe")
+            
+            # Actualizar is_admin si es necesario
+            if not admin.is_admin:
+                admin.is_admin = True
+                db.commit()
+                print("✅ Permisos de admin actualizados")
+                
     except Exception as e:
         print(f"❌ Error creando usuario admin: {str(e)}")
     finally:
