@@ -11,6 +11,12 @@ import traceback
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
 
+@router.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {"request": request}
+    )
 
 @router.post("/login")
 async def login(

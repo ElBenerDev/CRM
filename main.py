@@ -138,7 +138,13 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Incluir routers
 app.include_router(auth_router)
+app.include_router(dashboard_router)
 
+@app.get("/")
+async def root(request: Request):
+    if "user_id" in request.session:
+        return RedirectResponse(url="/dashboard")
+    return RedirectResponse(url="/auth/login")
 
 def init_admin_user():
     try:
