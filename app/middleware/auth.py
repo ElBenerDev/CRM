@@ -6,16 +6,16 @@ from app.utils.logging_config import logger
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Rutas que no requieren autenticación
-        public_paths = ["/auth/login", "/auth/token", "/static"]
+        public_paths = [
+            "/auth/login",
+            "/auth/token",
+            "/static",
+        ]
         
-        # Si es una ruta pública, permitir acceso
-        if any(request.url.path.startswith(path) for path in public_paths):
+        path = request.url.path
+        is_public = any(path.startswith(p) for p in public_paths)
+        
+        if is_public or request.session.get("user_id"):
             return await call_next(request)
-
-        # Verificar si hay sesión
-        if not request.session.get("user_id"):
-            print("No hay sesión activa")
-            return RedirectResponse(url="/auth/login", status_code=302)
-
-        return await call_next(request)
+            
+        return RedirectResponse(url="/auth/login", status_code=302)

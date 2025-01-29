@@ -16,6 +16,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def login_page(request: Request):
     return templates.TemplateResponse("auth/login.html", {"request": request})
 
+
 @router.post("/login")
 async def login(
     request: Request,
@@ -24,48 +25,16 @@ async def login(
     db: Session = Depends(get_db)
 ):
     try:
-        # Log de intento de login
-        logger.info(f"Intento de login para usuario: {username}")
-        
-        # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
-        
-        if not user:
-            logger.warning(f"Usuario no encontrado: {username}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
-            )
-
-        if not verify_password(password, user.password):
-            logger.warning(f"Contraseña incorrecta para usuario: {username}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
-            )
-
-        # Log de login exitoso
-        logger.info(f"Login exitoso para usuario: {username}")
-
-        # Guardar en sesión
-        request.session.clear()  # Limpiar sesión anterior
-        request.session["user_id"] = str(user.id)
-        request.session["user_email"] = user.email
-        
-        # Log de sesión guardada
-        logger.info(f"Sesión guardada para usuario: {username}")
-        
-        # Crear respuesta de redirección
-        response = RedirectResponse(url="/", status_code=303)
-        
-        # Forzar que la sesión se guarde antes de la redirección
-        await request.session.save()
-        
-        return response
-
-    except Exception as e:
-        logger.error(f"Error en login: {str(e)}")
+        if user and verify_password(password, user.password):
+            request.session["user_id"] = str(user.id)
+            return RedirectResponse(url="/", status_code=303)  # Redirect to dashboard
         return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Error interno del servidor"}
+            "auth/login.html", 
+            {"request": request, "error": "Invalid credentials"}
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            "auth/login.html", 
+            {"request": request, "error": "Login error"}
         )
