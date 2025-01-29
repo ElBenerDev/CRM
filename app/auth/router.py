@@ -29,15 +29,17 @@ async def login(
         
         # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
+        logger.info(f"Usuario encontrado: {user is not None}")
         
         if not user:
             logger.warning(f"Usuario no encontrado: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
+                {"request": request, "error": "Email o contraseña incorrectos"},
+                status_code=401
             )
 
-        # Log del hash almacenado
+        # Log del hash almacenado (solo para debugging)
         logger.info(f"Hash almacenado: {user.password}")
         
         # Verificar contraseña
@@ -48,19 +50,23 @@ async def login(
             logger.warning(f"Contraseña incorrecta para usuario: {username}")
             return templates.TemplateResponse(
                 "auth/login.html",
-                {"request": request, "error": "Email o contraseña incorrectos"}
+                {"request": request, "error": "Email o contraseña incorrectos"},
+                status_code=401
             )
 
         # Log de login exitoso
         logger.info(f"Login exitoso para usuario: {username}")
 
-        # Guardar en sesión
-        request.session["user_id"] = str(user.id)
-        request.session["user_email"] = user.email
-        
-        # Log de sesión guardada
-        logger.info(f"Sesión guardada. user_id: {request.session.get('user_id')}, email: {request.session.get('user_email')}")
-        
+        try:
+            # Guardar en sesión
+            request.session.clear()  # Limpiar sesión anterior si existe
+            request.session["user_id"] = str(user.id)
+            request.session["user_email"] = user.email
+            logger.info(f"Sesión guardada. user_id: {request.session.get('user_id')}, email: {request.session.get('user_email')}")
+        except Exception as e:
+            logger.error(f"Error al guardar sesión: {str(e)}")
+            raise
+
         # Redireccionar al dashboard con logs
         logger.info("Redirigiendo al dashboard...")
         response = RedirectResponse(url="/", status_code=303)
@@ -68,8 +74,8 @@ async def login(
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
         return templates.TemplateResponse(
             "auth/login.html",
-            {"request": request, "error": "Error interno del servidor"}
+            {"request": request, "error": f"Error interno del servidor: {str(e)}"}
         )
