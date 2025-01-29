@@ -92,6 +92,26 @@ def url_for(request: Request, name: str, **params):
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["url_for"] = url_for
 
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="Sistema CRM para gestión dental",
+    version=settings.APP_VERSION,
+)
+
+# Agregar middleware en orden correcto
+app.add_middleware(SessionMiddleware, 
+    secret_key="8f96d3a4e5b7c9d1f2g3h4j5k6l7m8n9p0q1r2s3t4u5v6w7x8y9z",
+    session_cookie="session"
+)
+app.add_middleware(CORSMiddleware, 
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+app.add_middleware(AuthMiddleware)
+
 # Configuración de middleware
 middleware = [
     Middleware(
@@ -113,20 +133,6 @@ middleware = [
     Middleware(DebugMiddleware)
 ]
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    description="Sistema CRM para gestión dental",
-    version=settings.APP_VERSION,
-    middleware=middleware  # <- Aquí se pasan todos los middleware
-)
-
-# Inicialización de FastAPI
-app = FastAPI(
-    title=settings.APP_NAME,
-    description="Sistema CRM para gestión dental",
-    version=settings.APP_VERSION,
-    middleware=middleware
-)
 
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

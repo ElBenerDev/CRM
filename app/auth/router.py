@@ -27,25 +27,7 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    logger.info("Inicio de proceso de login")
-    logger.info(f"Usuario: {username}")
-
     try:
-        # Verificar conexión a DB
-        try:
-            db.execute(text("SELECT 1"))
-            logger.info("Conexión a DB OK")
-        except Exception as e:
-            logger.error(f"Error de conexión: {str(e)}")
-            return templates.TemplateResponse(
-                "auth/login.html",
-                {
-                    "request": request,
-                    "error": "Error de conexión a la base de datos"
-                },
-                status_code=500
-            )
-
         # Buscar usuario
         user = db.query(User).filter(User.email == username).first()
         
@@ -55,26 +37,14 @@ async def login(
                 {
                     "request": request,
                     "error": "Email o contraseña incorrectos"
-                },
-                status_code=401
+                }
             )
 
-        # Limpiar sesión anterior si existe
-        request.session.clear()
-        
-        # Guardar en sesión
+        # Establecer la sesión
         request.session["user_id"] = str(user.id)
-        request.session["user_email"] = user.email
         
-        # Forzar guardado de sesión
-        await request.session.save()
-        
-        # Redireccionar al dashboard con headers específicos
-        response = RedirectResponse(url="/", status_code=302)
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-        return response
+        # Redireccionar al dashboard
+        return RedirectResponse(url="/", status_code=303)
 
     except Exception as e:
         logger.error(f"Error en login: {str(e)}")
@@ -83,6 +53,5 @@ async def login(
             {
                 "request": request,
                 "error": "Error interno del servidor"
-            },
-            status_code=500
+            }
         )
