@@ -338,12 +338,52 @@ async def generic_exception_handler(request: Request, exc: Exception):
         status_code=status_code
     )
     
+    
+@app.get("/auth/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("auth/login.html", {"request": request})
+
+@app.post("/auth/login")
+async def login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # Validate email and password
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email and password are required"
+        )
+
+    # Check if user exists
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or password"
+        )
+
+    # Verify password
+    if not verify_password(password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email or password"
+        )
+
+    # Set session
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/dashboard", status_code=303)    
+
+    
 @app.get("/")
+@app.head("/")  # Add support for HEAD requests
 async def root(request: Request):
-    # Verificar sesión sin asumir que el middleware ya lo hizo
     if not request.session.get("user_id"):
         return RedirectResponse(url="/auth/login", status_code=303)
     return RedirectResponse(url="/dashboard", status_code=303)
+
 
 # Ruta del dashboard - contiene toda la lógica
 @app.get("/dashboard", response_class=HTMLResponse)

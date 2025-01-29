@@ -1,13 +1,18 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from app.models.models import User
 from app.utils.db import get_db
 from app.auth.utils import verify_password
+from app.templates import templates  # Ensure you have access to templates
 
 router = APIRouter()
 
-@router.post("/login")
+@router.get("/auth/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("auth/login.html", {"request": request})
+
+@router.post("/auth/login")
 async def login(
     request: Request,
     email: str = Form(...),
