@@ -19,17 +19,17 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         try:
-            # Verificar sesión
-            if not hasattr(request, "session"):
-                return RedirectResponse(url="/auth/login")
-                
-            user_id = request.session.get("user_id")
+            # Verificar sesión de manera segura
+            session = request.session
+            user_id = session.get("user_id") if hasattr(request, "session") else None
+
             if not user_id:
-                return RedirectResponse(url="/auth/login")
+                return RedirectResponse(url="/auth/login", status_code=302)
 
             # Continuar con la solicitud
-            return await call_next(request)
+            response = await call_next(request)
+            return response
             
         except Exception as e:
             logger.error(f"Error en AuthMiddleware: {str(e)}")
-            return RedirectResponse(url="/auth/login")
+            return RedirectResponse(url="/auth/login", status_code=302)
