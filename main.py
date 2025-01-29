@@ -1,56 +1,83 @@
-from datetime import datetime, timedelta, timezone
+# Importaciones de Python estándar
 import os
-from typing import Optional
-import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import logging
 import traceback
 import secrets
-from app.auth.router import router as auth_router
-from app.routes.dashboard import router as dashboard_router
-from app.auth.dependencies import get_current_user_id
+from typing import Optional
 
-from starlette.middleware import Middleware
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.cors import CORSMiddleware
+# Importaciones de FastAPI y Starlette
 from fastapi import (
-    FastAPI, 
-    Request, 
-    Depends, 
-    HTTPException, 
-    status, 
+    FastAPI,
+    Request,
+    Depends,
+    HTTPException,
+    status,
     Form
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# Importaciones de SQLAlchemy
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-# Importaciones locales
+# Importaciones de rutas (routers)
 from app.auth.router import router as auth_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.patients import router as patients_router
 from app.routes.appointments import router as appointments_router
 from app.routes.leads import router as leads_router
 from app.routes.settings import router as settings_router
+
+# Importaciones de configuración y utilidades
 from config.settings import settings
-from app.utils.db import get_db, engine, Base, verify_db_connection, SessionLocal
-from app.auth.utils import get_password_hash
+from app.utils.db import (
+    get_db,
+    engine,
+    Base,
+    verify_db_connection,
+    SessionLocal
+)
 from app.utils.logger import logger
-from app.models.models import Patient, Appointment, Lead, User
-from app.schemas.schemas import PatientCreate, PatientResponse, LeadCreate, LeadResponse
+from app.auth.utils import get_password_hash
+from app.auth.dependencies import get_current_user_id
+
+# Importaciones de modelos y schemas
+from app.models.models import (
+    Patient,
+    Appointment,
+    Lead,
+    User
+)
+from app.schemas.schemas import (
+    PatientCreate,
+    PatientResponse,
+    LeadCreate,
+    LeadResponse
+)
+
+# Importaciones de middleware
 from app.middleware.auth import AuthMiddleware
 from app.middleware.debug import DebugMiddleware
 from app.middleware.logging import LoggingMiddleware
 
+# Importación de servidor
 import uvicorn
+
 
 # Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
 logger = logging.getLogger(__name__)
 
 # Configuración de directorios
@@ -60,10 +87,10 @@ STATIC_DIR = BASE_DIR / "app" / "static"
 
 # Asegurar que existan los directorios necesarios
 for dir_path in [
-    STATIC_DIR / "css" / "errors",
+    STATIC_DIR / "css",
     STATIC_DIR / "js",
     STATIC_DIR / "img",
-    TEMPLATES_DIR / "errors",
+    TEMPLATES_DIR
 ]:
     dir_path.mkdir(parents=True, exist_ok=True)
     
@@ -157,9 +184,8 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Middleware stack (orden importante)
-app.add_middleware(DebugMiddleware)
-app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SECRET_KEY", "una-clave-secreta-temporal"),
@@ -176,19 +202,20 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(DebugMiddleware)
+
+
 # Montar archivos estáticos
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(dashboard_router, tags=["dashboard"])
+app.include_router(patients_router, tags=["patients"])
+app.include_router(appointments_router, tags=["appointments"])
+app.include_router(leads_router, tags=["leads"])
+app.include_router(settings_router, tags=["settings"])
 
-# Incluir routers
-app.include_router(auth_router)
-app.include_router(dashboard_router)
-app.include_router(patients_router)
-app.include_router(appointments_router)
-app.include_router(leads_router)
-app.include_router(settings_router)
 
 # Eventos de la aplicación
 @app.on_event("startup")
@@ -196,16 +223,21 @@ async def startup_event():
     logger.info("🚀 Aplicación iniciada")
     logger.info(f"🌐 Ambiente: {settings.ENVIRONMENT}")
     logger.info(f"🔧 Debug: {settings.DEBUG}")
-    if init_db():
-        init_admin_user()
+    
+    # Inicializar DB
+    if not init_db():
+        raise Exception("No se pudo inicializar la base de datos")
+    
+    # Crear usuario admin
+    init_admin_user()
 
 # Manejadores de excepciones
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    if exc.status_code == 405:
+    if exc.status_code == 401:
         return RedirectResponse(url="/auth/login", status_code=303)
     return templates.TemplateResponse(
-        "errors/error.html",
+        "error.html",
         {
             "request": request,
             "error_message": str(exc.detail),
@@ -255,19 +287,24 @@ async def generic_exception_handler(request: Request, exc: Exception):
         status_code=status_code
     )
     
-# Ruta raíz y dashboard
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request, db: Session = Depends(get_db)):
-    try:
-        user_id = request.session.get("user_id")
-        if not user_id:
-            return RedirectResponse(url="/auth/login", status_code=302)
-            
-        current_user = db.query(User).filter(User.id == user_id).first()
-        if not current_user:
-            return RedirectResponse(url="/auth/login", status_code=302)
+    
+@app.get("/")
+async def root(request: Request):
+    if "user_id" not in request.session:
+        return RedirectResponse(url="/auth/login", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
-        # Estadísticas
+# Ruta del dashboard - contiene toda la lógica
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(
+    request: Request,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    try:
+        current_user = db.query(User).filter(User.id == user_id).first()
+        
+        # Estadísticas para el dashboard
         total_patients = db.query(func.count(Patient.id)).scalar() or 0
         
         # Citas de hoy
@@ -276,12 +313,12 @@ async def home(request: Request, db: Session = Depends(get_db)):
         appointments_today = db.query(func.count(Appointment.id))\
             .filter(Appointment.date.between(today_start, today_end))\
             .scalar() or 0
-        
+            
         # Citas pendientes y completadas
         pending_appointments = db.query(func.count(Appointment.id))\
             .filter(Appointment.status == 'scheduled')\
             .scalar() or 0
-        
+            
         completed_appointments = db.query(func.count(Appointment.id))\
             .filter(Appointment.status == 'completed')\
             .scalar() or 0
@@ -292,6 +329,12 @@ async def home(request: Request, db: Session = Depends(get_db)):
             .filter(Appointment.date >= datetime.now(timezone.utc))\
             .filter(Appointment.status == 'scheduled')\
             .order_by(Appointment.date)\
+            .limit(5)\
+            .all()
+
+        # Últimos pacientes registrados
+        recent_patients = db.query(Patient)\
+            .order_by(Patient.created_at.desc())\
             .limit(5)\
             .all()
 
@@ -311,50 +354,13 @@ async def home(request: Request, db: Session = Depends(get_db)):
                     "pending_appointments": pending_appointments,
                     "completed_appointments": completed_appointments
                 },
-                "upcoming_appointments": upcoming_appointments
+                "upcoming_appointments": upcoming_appointments,
+                "recent_patients": recent_patients
             }
         )
     except Exception as e:
-        logger.error(f"Error en home: {str(e)}")
-        return RedirectResponse(url="/auth/login", status_code=302)
-    
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(
-    request: Request,
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
-    try:
-        current_user = db.query(User).filter(User.id == user_id).first()
-        
-        # Estadísticas para el dashboard
-        total_patients = db.query(func.count(Patient.id)).scalar() or 0
-        
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = today_start + timedelta(days=1)
-        appointments_today = db.query(func.count(Appointment.id))\
-            .filter(Appointment.date.between(today_start, today_end))\
-            .scalar() or 0
-        
-        return templates.TemplateResponse(
-            "dashboard.html",
-            {
-                "request": request,
-                "user": {
-                    "name": current_user.name,
-                    "email": current_user.email,
-                    "role": "Admin"
-                },
-                "active": "dashboard",
-                "stats": {
-                    "total_patients": total_patients,
-                    "appointments_today": appointments_today
-                }
-            }
-        )
-    except Exception as e:
-        print(f"Error en dashboard: {str(e)}")
-        return RedirectResponse(url="/auth/login", status_code=302)    
+        logger.error(f"Error en dashboard: {str(e)}")
+        return RedirectResponse(url="/auth/login", status_code=303)
 
 # Rutas de pacientes
 @app.get("/patients", response_class=HTMLResponse)
@@ -562,12 +568,7 @@ async def logout(request: Request):
         logger.error(f"Error en logout: {str(e)}")
         return RedirectResponse(url="/auth/login", status_code=302)
 
-# Redirección de la ruta raíz
-@app.get("/")
-async def root(request: Request):
-    if request.session.get("user_id"):
-        return RedirectResponse(url="/dashboard", status_code=302)
-    return RedirectResponse(url="/auth/login", status_code=302)
+
 
 # Configuración de inicio de la aplicación
 if __name__ == "__main__":
