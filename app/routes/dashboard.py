@@ -6,7 +6,7 @@ from sqlalchemy import func
 from datetime import datetime, timezone, timedelta
 
 from app.utils.db import get_db
-from app.models.models import User, Patient, Appointment
+from app.models.models import User, Patient, Appointment  # Importar los modelos desde models.py
 from app.auth.dependencies import get_current_user_id
 
 router = APIRouter()
