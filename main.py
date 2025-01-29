@@ -289,7 +289,8 @@ async def generic_exception_handler(request: Request, exc: Exception):
     
 @app.get("/")
 async def root(request: Request):
-    if "user_id" not in request.session:
+    # Verificar sesión sin asumir que el middleware ya lo hizo
+    if not request.session.get("user_id"):
         return RedirectResponse(url="/auth/login", status_code=303)
     return RedirectResponse(url="/dashboard", status_code=303)
 
