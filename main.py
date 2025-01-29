@@ -24,7 +24,8 @@ from sqlalchemy.orm import Session
 
 from app.auth.router import router as auth_router
 from config.settings import settings
-from app.utils.db import get_db, engine, Base, verify_db_connection
+from app.utils.db import get_db, engine, Base, verify_db_connection, SessionLocal
+from app.auth.utils import get_password_hash
 from app.utils.logger import logger
 from app.models.models import Patient, Appointment, Lead, User
 from app.schemas.schemas import PatientCreate, PatientResponse, LeadCreate, LeadResponse
@@ -137,13 +138,40 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 # Incluir routers
 app.include_router(auth_router)
 
+
+def init_admin_user():
+    try:
+        db = SessionLocal()
+        admin = db.query(User).filter(User.email == "admin@admin.com").first()
+        if not admin:
+            admin = User(
+                email="admin@admin.com",
+                password=get_password_hash("admin123"),
+                name="Admin",
+                is_active=True,
+                is_admin=True
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Usuario admin creado correctamente")
+        else:
+            print("ℹ️ El usuario admin ya existe")
+    except Exception as e:
+        print(f"❌ Error creando usuario admin: {str(e)}")
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Aplicación iniciada")
     logger.info(f"🌐 Ambiente: {settings.ENVIRONMENT}")
     logger.info(f"🔧 Debug: {settings.DEBUG}")
-    init_db()
+    if init_db():
+        init_admin_user()  # Inicializa el usuario admin
 
+
+        
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     if exc.status_code == 405:

@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
+import jwt
+from jwt import JWTError
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer 
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-import sys
-import traceback
-
 from app.utils.db import get_db
 from app.models.models import User
+import sys
+import traceback
 
 # Configuración de JWT
 SECRET_KEY = "dj38sk#L9$mK2&pQ5*vN8@xW4nR7tY3hB9cF6"
