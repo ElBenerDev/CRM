@@ -34,6 +34,8 @@ from app.middleware.logging import LoggingMiddleware
 
 import uvicorn
 
+from app.routes import dashboard
+
 # Configuración de logging
 logging.basicConfig(
     level=logging.INFO,

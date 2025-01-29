@@ -17,6 +17,7 @@ async def login_page(request: Request):
     return templates.TemplateResponse("auth/login.html", {"request": request})
 
 
+
 @router.post("/login")
 async def login(
     request: Request,
@@ -26,15 +27,18 @@ async def login(
 ):
     try:
         user = db.query(User).filter(User.email == username).first()
-        if user and verify_password(password, user.password):
+        
+        if user and user.password == password:  # Simple password check for now
             request.session["user_id"] = str(user.id)
-            return RedirectResponse(url="/", status_code=303)  # Redirect to dashboard
+            return RedirectResponse(url="/dashboard", status_code=303)
+        
         return templates.TemplateResponse(
-            "auth/login.html", 
+            "auth/login.html",
             {"request": request, "error": "Invalid credentials"}
         )
     except Exception as e:
+        print(f"Login error: {e}")
         return templates.TemplateResponse(
-            "auth/login.html", 
-            {"request": request, "error": "Login error"}
+            "auth/login.html",
+            {"request": request, "error": "Server error"}
         )

@@ -8,14 +8,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         public_paths = [
             "/auth/login",
-            "/auth/token",
             "/static",
         ]
-        
-        path = request.url.path
-        is_public = any(path.startswith(p) for p in public_paths)
-        
+
+        is_public = any(request.url.path.startswith(path) for path in public_paths)
         if is_public or request.session.get("user_id"):
             return await call_next(request)
-            
         return RedirectResponse(url="/auth/login", status_code=302)
