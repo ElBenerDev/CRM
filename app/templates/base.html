@@ -3,97 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema CRM para gestión dental">
-    <meta name="keywords" content="dental, crm, citas, pacientes, gestión dental">
-    <meta name="author" content="ElBenerDev">
-    
     <title>{% block title %}Dental CRM{% endblock %}</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/static/img/favicon.png">
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
-    
-    <style>
-        .sidebar-nav::-webkit-scrollbar {
-            width: 4px;
-        }
-        .sidebar-nav::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-        }
-    </style>
+    <script defer src="https://cdn.alpinejs.dev/dist/cdn.min.js"></script>
+    {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-100">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between">
-                <div class="flex space-x-7">
-                    <div class="flex items-center py-4">
-                        <span class="font-semibold text-gray-500 text-lg">Dental CRM</span>
-                    </div>
-                    <div class="hidden md:flex items-center space-x-1">
-                        <a href="{{ url_for('home') }}" class="py-4 px-2 {% if active == 'dashboard' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
-                            <i class="fas fa-chart-line mr-2"></i>Dashboard
-                        </a>
-                        <a href="{{ url_for('patients_page') }}" class="py-4 px-2 {% if active == 'patients' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
-                            <i class="fas fa-user-injured mr-2"></i>Pacientes
-                        </a>
-                        <a href="{{ url_for('appointments_page') }}" class="py-4 px-2 {% if active == 'appointments' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
-                            <i class="fas fa-calendar-alt mr-2"></i>Citas
-                        </a>
-                        <a href="{{ url_for('leads_page') }}" class="py-4 px-2 {% if active == 'leads' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
-                            <i class="fas fa-user-plus mr-2"></i>Leads
-                        </a>
-                        <a href="{{ url_for('settings_page') }}" class="py-4 px-2 {% if active == 'settings' %}text-blue-500 border-b-4 border-blue-500{% else %}text-gray-500 hover:text-blue-500{% endif %} font-semibold">
-                            <i class="fas fa-cog mr-2"></i>Configuración
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <span class="text-gray-500">
-                        <i class="fas fa-user mr-2"></i>{{ user.name }}
-                    </span>
-                    <a href="{{ url_for('logout') }}" class="text-red-500 hover:text-red-700">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md">
+            <div class="p-4">
+                <h1 class="text-xl font-bold text-gray-800">Dental CRM</h1>
             </div>
+            <nav class="mt-4">
+                <a href="/dashboard" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'dashboard' %}bg-gray-100{% endif %}">
+                    <span class="mx-4">Dashboard</span>
+                </a>
+                <a href="/patients" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'patients' %}bg-gray-100{% endif %}">
+                    <span class="mx-4">Pacientes</span>
+                </a>
+                <a href="/appointments" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'appointments' %}bg-gray-100{% endif %}">
+                    <span class="mx-4">Citas</span>
+                </a>
+                <a href="/leads" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'leads' %}bg-gray-100{% endif %}">
+                    <span class="mx-4">Leads</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Header -->
+            <header class="bg-white shadow">
+                <div class="mx-auto px-4 py-3">
+                    <h2 class="text-xl font-semibold text-gray-800">{% block header %}{% endblock %}</h2>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="p-6">
+                {% block content %}{% endblock %}
+            </main>
         </div>
-    </nav>
-
-    <!-- Page Header -->
-    <header class="bg-white shadow">
-        <div class="max-w-7xl mx-auto py-6 px-4">
-            <h1 class="text-3xl font-bold text-gray-900">
-                {% block header %}{% endblock %}
-            </h1>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Loading Indicator -->
-    <div id="loader" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
     </div>
 
     <!-- Toast Container -->
     <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
-    <!-- Scripts -->
-    <script src="{{ url_for('static', path='js/main.js') }}" type="module"></script>
-    {% block scripts %}{% endblock %}
+    <!-- Loading Indicator -->
+    <div id="loader" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+
+    <!-- Base Scripts -->
+    <script src="{{ url_for('static', path='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,131 +1,111 @@
 {% extends "base.html" %}
 {% set active = 'dashboard' %}
 
-{% block title %}Dashboard - Dental CRM{% endblock %}
-{% block header %}Dashboard{% endblock %}
-
 {% block content %}
-<div class="container mx-auto">
+<div class="container mx-auto px-4 py-8">
     <!-- Estadísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Total Pacientes -->
         <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-blue-500 bg-opacity-20">
-                    <i class="fas fa-users text-blue-500 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-gray-500 text-sm">Total Pacientes</p>
-                    <p class="text-2xl font-semibold text-gray-700">{{ stats.total_patients }}</p>
-                </div>
-            </div>
+            <h3 class="text-gray-500 text-sm font-medium">Total Pacientes</h3>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_patients }}</p>
         </div>
-
+        <!-- Total Citas -->
         <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-green-500 bg-opacity-20">
-                    <i class="fas fa-calendar-check text-green-500 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-gray-500 text-sm">Citas Hoy</p>
-                    <p class="text-2xl font-semibold text-gray-700">{{ stats.appointments_today }}</p>
-                </div>
-            </div>
+            <h3 class="text-gray-500 text-sm font-medium">Total Citas</h3>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_appointments }}</p>
         </div>
-
+        <!-- Citas Hoy -->
         <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-yellow-500 bg-opacity-20">
-                    <i class="fas fa-clock text-yellow-500 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-gray-500 text-sm">Citas Pendientes</p>
-                    <p class="text-2xl font-semibold text-gray-700">{{ stats.pending_appointments }}</p>
-                </div>
-            </div>
+            <h3 class="text-gray-500 text-sm font-medium">Citas Hoy</h3>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.appointments_today }}</p>
         </div>
-
+        <!-- Total Leads -->
         <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-purple-500 bg-opacity-20">
-                    <i class="fas fa-check-circle text-purple-500 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-gray-500 text-sm">Citas Completadas</p>
-                    <p class="text-2xl font-semibold text-gray-700">{{ stats.completed_appointments }}</p>
-                </div>
-            </div>
+            <h3 class="text-gray-500 text-sm font-medium">Total Leads</h3>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_leads }}</p>
         </div>
     </div>
 
-    <!-- Contenido Principal -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Citas Próximas -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800">Próximas Citas</h2>
-            </div>
-            <div class="p-6">
-                {% if upcoming_appointments %}
-                    <div class="space-y-4">
-                        {% for appointment in upcoming_appointments %}
-                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="ml-4">
-                                    <p class="font-semibold text-gray-800">{{ appointment.patient.name }}</p>
-                                    <p class="text-sm text-gray-500">{{ appointment.date.strftime('%d/%m/%Y %H:%M') }}</p>
-                                    <p class="text-sm text-gray-500">{{ service_names[appointment.service_type] }}</p>
-                                </div>
-                            </div>
-                            <span class="px-3 py-1 text-xs rounded-full 
-                                {% if appointment.status == 'scheduled' %}bg-green-100 text-green-800
-                                {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
-                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                {{ status_names[appointment.status] }}
-                            </span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-4 text-gray-500">
-                        <p>No hay citas próximas</p>
-                    </div>
-                {% endif %}
-            </div>
+    <!-- Próximas Citas -->
+    <div class="bg-white rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800">Próximas Citas</h2>
         </div>
-
-        <!-- Últimos Pacientes -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800">Últimos Pacientes</h2>
-            </div>
-            <div class="p-6">
-                {% if recent_patients %}
-                    <div class="space-y-4">
-                        {% for patient in recent_patients %}
-                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                                    {{ patient.name[:2].upper() }}
-                                </div>
-                                <div class="ml-4">
-                                    <p class="font-semibold text-gray-800">{{ patient.name }}</p>
-                                    <p class="text-sm text-gray-500">
-                                        {{ patient.appointments|length }} citas
-                                    </p>
-                                </div>
-                            </div>
-                            <a href="/patients" class="text-blue-500 hover:text-blue-700">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
+        <div class="divide-y divide-gray-200">
+            {% if upcoming_appointments %}
+                {% for appointment in upcoming_appointments %}
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold text-gray-800">{{ appointment.patient.name }}</p>
+                            <p class="text-sm text-gray-600">
+                                <i class="fas fa-calendar-alt mr-1"></i>
+                                {{ appointment.date.strftime('%d/%m/%Y %H:%M') }}
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                <i class="fas fa-tooth mr-1"></i>
+                                {% set service_names = {
+                                    'CONSULTA': 'Consulta General',
+                                    'LIMPIEZA': 'Limpieza Dental',
+                                    'TRATAMIENTO': 'Tratamiento'
+                                } %}
+                                {{ service_names[appointment.service_type] }}
+                            </p>
                         </div>
-                        {% endfor %}
+                        <span class="px-3 py-1 text-sm rounded-full 
+                            {% if appointment.status == 'SCHEDULED' %}bg-blue-100 text-blue-800
+                            {% elif appointment.status == 'COMPLETED' %}bg-green-100 text-green-800
+                            {% elif appointment.status == 'CANCELLED' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% set status_names = {
+                                'SCHEDULED': 'Programada',
+                                'COMPLETED': 'Completada',
+                                'CANCELLED': 'Cancelada',
+                                'PENDING': 'Pendiente'
+                            } %}
+                            {{ status_names[appointment.status] }}
+                        </span>
                     </div>
-                {% else %}
-                    <div class="text-center py-4 text-gray-500">
-                        <p>No hay pacientes registrados</p>
-                    </div>
-                {% endif %}
-            </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="p-6 text-center text-gray-500">
+                    No hay citas próximas
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pacientes Recientes -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800">Pacientes Recientes</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+            {% if recent_patients %}
+                {% for patient in recent_patients %}
+                <div class="p-6">
+                    <p class="font-semibold text-gray-800">{{ patient.name }}</p>
+                    {% if patient.email %}
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-envelope mr-1"></i>
+                            {{ patient.email }}
+                        </p>
+                    {% endif %}
+                    {% if patient.phone %}
+                        <p class="text-sm text-gray-500">
+                            <i class="fas fa-phone mr-1"></i>
+                            {{ patient.phone }}
+                        </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="p-6 text-center text-gray-500">
+                    No hay pacientes registrados
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

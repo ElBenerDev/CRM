@@ -1,42 +1,34 @@
 import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.utils.db import SessionLocal
-from app.models.models import User
-from app.auth.utils import get_password_hash
+from app.db.session import SessionLocal
+from app.db.models.user import User
+from app.core.security import get_password_hash
 
-def create_admin_user(email: str, password: str, name: str):
+def create_admin_user():
     db = SessionLocal()
     try:
-        # Verificar si el usuario ya existe
-        existing_user = db.query(User).filter(User.email == email).first()
-        if existing_user:
-            print(f"El usuario {email} ya existe")
-            return
-
-        # Crear nuevo usuario admin
-        hashed_password = get_password_hash(password)
-        admin_user = User(
-            email=email,
-            password=hashed_password,
-            name=name,
-            is_active=True
-        )
+        # Verificar si ya existe un admin
+        admin = db.query(User).filter(User.email == "admin@admin.com").first()
         
-        db.add(admin_user)
-        db.commit()
-        print(f"Usuario administrador {email} creado exitosamente")
-    
+        if not admin:
+            admin = User(
+                email="admin@admin.com",
+                name="Admin",
+                password=get_password_hash("admin123"),
+                is_active=True,
+                is_admin=True
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Usuario admin creado correctamente")
+        else:
+            print("ℹ️ El usuario admin ya existe")
     except Exception as e:
-        print(f"Error creando usuario admin: {e}")
-        db.rollback()
+        print(f"❌ Error creando usuario admin: {str(e)}")
     finally:
         db.close()
 
 if __name__ == "__main__":
-    create_admin_user(
-        email="admin@example.com",
-        password="admin123",  # Cambiar en producción
-        name="Administrador"
-    )
+    create_admin_user()

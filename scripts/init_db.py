@@ -1,49 +1,71 @@
-import os
 import sys
+import os
+from pathlib import Path
 
-# Añadir el directorio raíz del proyecto al PYTHONPATH
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Añadir el directorio raíz al PATH
+sys.path.append(str(Path(__file__).parent.parent))
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from app.models.models import Base, User
-from app.auth.utils import get_password_hash
-from config.settings import settings
+from app.db.session import engine, Base
+from app.db.models.user import User
+from app.db.models.patient import Patient
+from app.db.models.appointment import Appointment
+from app.db.models.lead import Lead
+from app.core.security import get_password_hash
+from sqlalchemy.orm import Session
+from app.db.session import SessionLocal
 
 def init_db():
-    # Crear el engine
-    engine = create_engine(settings.DATABASE_URL)
+    print("Creando tablas en la base de datos...")
+    Base.metadata.create_all(bind=engine)
     
+    db = SessionLocal()
     try:
-        # Crear todas las tablas
-        Base.metadata.create_all(bind=engine)
-        
-        # Crear una sesión
-        SessionLocal = sessionmaker(bind=engine)
-        db = SessionLocal()
-        
         # Verificar si ya existe un usuario admin
-        admin = db.query(User).filter(User.email == "admin@example.com").first()
-        
+        admin = db.query(User).filter(User.email == "admin@admin.com").first()
         if not admin:
-            # Crear usuario admin
-            admin = User(
-                email="admin@example.com",
-                password=get_password_hash("admin123"),  # Cambia esta contraseña
-                name="Admin",
+            print("Creando usuario administrador...")
+            admin_user = User(
+                email="admin@admin.com",
+                name="Administrador",
+                password=get_password_hash("admin123"),
+                is_active=True,
                 is_admin=True
             )
-            db.add(admin)
+            db.add(admin_user)
             db.commit()
-            print("✅ Usuario admin creado exitosamente")
-        else:
-            print("ℹ️ El usuario admin ya existe")
+            print("Usuario administrador creado exitosamente")
+        
+        # Crear algunos datos de ejemplo
+        if db.query(Patient).count() == 0:
+            print("Creando datos de ejemplo...")
+            # Crear algunos pacientes de ejemplo
+            patients = [
+                Patient(
+                    name="Juan Pérez",
+                    email="juan@example.com",
+                    phone="123456789",
+                    address="Calle Principal 123",
+                    notes="Paciente regular"
+                ),
+                Patient(
+                    name="María García",
+                    email="maria@example.com",
+                    phone="987654321",
+                    address="Avenida Central 456",
+                    notes="Paciente nuevo"
+                )
+            ]
+            db.add_all(patients)
+            db.commit()
+            print("Datos de ejemplo creados exitosamente")
             
     except Exception as e:
-        print(f"❌ Error inicializando la base de datos: {str(e)}")
-        raise
+        print(f"Error: {e}")
+        db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
+    print("Iniciando configuración de la base de datos...")
     init_db()
+    print("Configuración completa")
