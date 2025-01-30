@@ -56,7 +56,7 @@
                             id="notes" name="notes" rows="3"></textarea>
                     </div>
                     <div class="flex justify-end space-x-4">
-                        <button type="button" onclick="closeNewAppointmentModal()"
+                        <button type="button" id="cancelAppointmentButton"
                             class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
                             Cancelar
                         </button>
@@ -137,54 +137,79 @@
 </div>
 
 <script>
-// Reemplaza la función openNewAppointmentModal con esta versión actualizada:
-function openNewAppointmentModal() {
-    document.getElementById('newAppointmentModal').classList.remove('hidden');
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el formulario
+    const appointmentForm = document.getElementById('appointmentForm');
     
-    // Establecer fecha mínima como hoy
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajustar zona horaria
-    const today = now.toISOString().slice(0, 16);
-    
-    const dateInput = document.getElementById('date');
-    dateInput.min = today;
-    dateInput.value = today; // Establecer fecha actual como valor predeterminado
-}
+    function openNewAppointmentModal() {
+        document.getElementById('newAppointmentModal').classList.remove('hidden');
+        
+        // Establecer fecha mínima como hoy
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajustar zona horaria
+        const today = now.toISOString().slice(0, 16);
+        
+        const dateInput = document.getElementById('date');
+        dateInput.min = today;
+        dateInput.value = today; // Establecer fecha actual como valor predeterminado
+    }
 
-// Actualiza la parte del manejo del formulario:
-document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const dateInput = document.getElementById('date').value;
-    const formData = {
-        patient_id: document.getElementById('patient_id').value,
-        date: new Date(dateInput).toISOString(),
-        service_type: document.getElementById('service_type').value,
-        notes: document.getElementById('notes').value
+    function closeNewAppointmentModal() {
+        document.getElementById('newAppointmentModal').classList.add('hidden');
+        appointmentForm.reset();
+    }
+
+    // Asignar la función al objeto window para que esté disponible globalmente
+    window.openNewAppointmentModal = openNewAppointmentModal;
+    window.closeNewAppointmentModal = closeNewAppointmentModal;
+
+    // Botón de cancelar en el modal
+    document.getElementById('cancelAppointmentButton').addEventListener('click', closeNewAppointmentModal);
+
+    // Cerrar modal al hacer clic fuera
+    window.onclick = function(event) {
+        const modal = document.getElementById('newAppointmentModal');
+        if (event.target == modal) {
+            closeNewAppointmentModal();
+        }
     };
 
-    try {
-        const response = await fetch('/api/appointments/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData)
-        });
+    // Manejar el envío del formulario
+    appointmentForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const dateInput = document.getElementById('date').value;
+        const formData = {
+            patient_id: document.getElementById('patient_id').value,
+            date: new Date(dateInput).toISOString(),
+            service_type: document.getElementById('service_type').value,
+            notes: document.getElementById('notes').value
+        };
 
-        if (response.ok) {
-            closeNewAppointmentModal();
-            window.location.reload();
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.detail);
+        try {
+            const response = await fetch('/api/appointments/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                closeNewAppointmentModal();
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.detail);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al crear la cita');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error al crear la cita');
-    }
+    });
 });
 
+// Funciones globales para las acciones de la tabla
 async function cancelAppointment(id) {
     if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
         return;
@@ -209,14 +234,6 @@ async function cancelAppointment(id) {
 function viewAppointment(id) {
     // Implementar vista detallada de la cita
     console.log('Ver cita:', id);
-}
-
-// Cerrar modal si se hace clic fuera de él
-window.onclick = function(event) {
-    const modal = document.getElementById('newAppointmentModal');
-    if (event.target == modal) {
-        closeNewAppointmentModal();
-    }
 }
 </script>
 {% endblock %}

@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import func
+from sqlalchemy import func, inspect
 from sqlalchemy.orm import Session
 
 # Importaciones de la aplicación
@@ -20,8 +20,23 @@ from app.db.models.lead import Lead, LeadStatus
 
 
 # Crear tablas en la base de datos
-Base.metadata.drop_all(bind=engine) 
-Base.metadata.create_all(bind=engine)
+def init_db():
+    # Crear un inspector
+    inspector = inspect(engine)
+    
+    # Verificar si las tablas ya existen
+    existing_tables = inspector.get_table_names()
+    
+    if not existing_tables:
+        # Solo crear las tablas si no existen
+        print("Inicializando base de datos...")
+        Base.metadata.create_all(bind=engine)
+        print("Base de datos inicializada correctamente.")
+    else:
+        print("Base de datos ya existente, omitiendo inicialización.")
+
+# Llamar a la función al inicio de la aplicación
+init_db()
 
 app = FastAPI(title="Dental CRM")
 
