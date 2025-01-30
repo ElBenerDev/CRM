@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 import traceback
 import secrets
-from typing import Optional
+from typing import Any
 
 # Importaciones de FastAPI y Starlette
 from fastapi import (
@@ -133,6 +133,11 @@ def init_db():
         logger.error(f"❌ Error al inicializar la base de datos: {str(e)}")
         return False
 
+def get_url_for(request: Request):
+    def url_for(name: str, **path_params: Any) -> str:
+        return request.url_for(name, **path_params)
+    return url_for
+
 def init_admin_user():
     try:
         db = SessionLocal()
@@ -165,8 +170,8 @@ def init_admin_user():
     finally:
         db.close()
 
-def url_for(request: Request, name: str, **params):
-    return request.url_for(name, **params)
+def url_for(request: Request, name: str, **path_params: Any) -> str:
+    return request.url_for(name, **path_params)
 
 # Configuración de la aplicación
 app = FastAPI(
@@ -177,7 +182,7 @@ app = FastAPI(
 
 # Configuración de templates
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-templates.env.globals["url_for"] = url_for
+templates.env.globals["url_for"] = lambda request, **params: url_for(request, **params)
 
 def validate_csrf_token(token: str) -> bool:
     # Implement your CSRF token validation logic here
@@ -186,11 +191,10 @@ def validate_csrf_token(token: str) -> bool:
 
 # Middleware configuration
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info("\n" + "="*50)
-    logger.info(f"🔄 Nueva solicitud: {request.method} {request.url.path}")
+async def add_url_for_to_templates(request: Request, call_next):
+    # Añadir url_for al contexto global de templates
+    templates.env.globals["url_for"] = get_url_for(request)
     response = await call_next(request)
-    logger.info(f"📤 Respuesta: {response.status_code}")
     return response
 
 # Middleware stack (ORDEN CORREGIDO)
