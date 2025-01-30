@@ -1,6 +1,10 @@
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
 from .config import settings
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+TEMPLATES_DIR = BASE_DIR / "app" / "templates"
 
 def format_date(date):
     if date is None:
