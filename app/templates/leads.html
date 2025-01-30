@@ -1,241 +1,159 @@
 {% extends "base.html" %}
 {% set active = 'leads' %}
 
-{% block title %}Leads{% endblock %}
-{% block header %}Leads{% endblock %}
-
 {% block content %}
-<div class="container mx-auto px-4">
-    <!-- Botón Agregar Lead -->
-    <div class="mb-6">
-        <button onclick="toggleModal('addLeadModal')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            <i class="fas fa-plus"></i> Nuevo Lead
+<div class="container mx-auto px-4 py-8">
+    <!-- Botón para abrir el modal -->
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-800">Leads</h1>
+        <button onclick="openNewLeadModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+            <i class="fas fa-plus mr-2"></i>Nuevo Lead
         </button>
     </div>
 
-    <!-- Tabla de Leads -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
+    <!-- Modal para nuevo lead -->
+    <div id="newLeadModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Nuevo Lead</h3>
+                <form action="/leads/create" method="POST">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                            Nombre *
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="name" name="name" type="text" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                            Email
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="email" name="email" type="email">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
+                            Teléfono
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="phone" name="phone" type="tel">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="source">
+                            Fuente
+                        </label>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="source" name="source">
+                            <option value="">Seleccionar...</option>
+                            <option value="Web">Página Web</option>
+                            <option value="Referido">Referido</option>
+                            <option value="Redes">Redes Sociales</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
+                            Notas
+                        </label>
+                        <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" onclick="closeNewLeadModal()"
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de leads -->
+    <div class="bg-white shadow-md rounded my-6">
         <table class="min-w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            <thead>
+                <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                    <th class="py-3 px-6 text-left">Nombre</th>
+                    <th class="py-3 px-6 text-left">Email</th>
+                    <th class="py-3 px-6 text-left">Teléfono</th>
+                    <th class="py-3 px-6 text-left">Fuente</th>
+                    <th class="py-3 px-6 text-center">Estado</th>
+                    <th class="py-3 px-6 text-center">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% if leads %}
-                    {% for lead in leads %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ lead.name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ lead.email }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ lead.phone }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if lead.status == 'nuevo' %}bg-green-100 text-green-800
-                                {% elif lead.status == 'contactado' %}bg-blue-100 text-blue-800
-                                {% elif lead.status == 'interesado' %}bg-yellow-100 text-yellow-800
-                                {% else %}bg-red-100 text-red-800{% endif %}">
-                                {{ lead.status|title }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="editLead('{{ lead.id }}')" class="text-blue-600 hover:text-blue-900 mr-3" title="Editar">
+            <tbody class="text-gray-600 text-sm font-light">
+                {% for lead in leads %}
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                    <td class="py-3 px-6 text-left whitespace-nowrap">
+                        <div class="flex items-center">
+                            <span class="font-medium">{{ lead.name }}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ lead.email or '-' }}
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ lead.phone or '-' }}
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ lead.source or '-' }}
+                    </td>
+                    <td class="py-3 px-6 text-center">
+                        <span class="px-3 py-1 text-sm rounded-full 
+                            {% if lead.status == 'NUEVO' %}bg-blue-100 text-blue-800
+                            {% elif lead.status == 'CONTACTADO' %}bg-yellow-100 text-yellow-800
+                            {% elif lead.status == 'INTERESADO' %}bg-green-100 text-green-800
+                            {% elif lead.status == 'CONVERTIDO' %}bg-purple-100 text-purple-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ lead.status }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-6 text-center">
+                        <div class="flex item-center justify-center">
+                            <button onclick="viewLead({{ lead.id }})" class="w-4 mr-2 transform hover:text-purple-500 hover:scale-110">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="editLead({{ lead.id }})" class="w-4 mr-2 transform hover:text-purple-500 hover:scale-110">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deleteLead('{{ lead.id }}')" class="text-red-600 hover:text-red-900" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                            No hay leads registrados
-                        </td>
-                    </tr>
-                {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Modal Agregar/Editar Lead -->
-<div id="addLeadModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 id="leadModalTitle" class="text-lg leading-6 font-medium text-gray-900 mb-4 text-center">Agregar Nuevo Lead</h3>
-            <form id="leadForm" class="space-y-4">
-                <input type="hidden" name="lead_id" id="lead_id">
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
-                        Nombre completo
-                    </label>
-                    <input type="text" name="name" id="name" required
-                           class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
-                        Email
-                    </label>
-                    <input type="email" name="email" id="email" required
-                           class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
-                        Teléfono
-                    </label>
-                    <input type="tel" name="phone" id="phone" required
-                           class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="status">
-                        Estado
-                    </label>
-                    <select name="status" id="status" required
-                            class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                        <option value="nuevo">Nuevo</option>
-                        <option value="contactado">Contactado</option>
-                        <option value="interesado">Interesado</option>
-                        <option value="no_interesado">No Interesado</option>
-                    </select>
-                </div>
-                <div class="flex items-center justify-between mt-6">
-                    <button type="button" onclick="toggleModal('addLeadModal')"
-                            class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Cancelar
-                    </button>
-                    <button type="submit"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Guardar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-function toggleModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal.classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    } else {
-        modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-        resetForm();
-    }
+function openNewLeadModal() {
+    document.getElementById('newLeadModal').classList.remove('hidden');
 }
 
-function resetForm() {
-    document.getElementById('leadForm').reset();
-    document.getElementById('lead_id').value = '';
-    document.getElementById('leadModalTitle').textContent = 'Agregar Nuevo Lead';
+function closeNewLeadModal() {
+    document.getElementById('newLeadModal').classList.add('hidden');
 }
 
-async function editLead(leadId) {
-    try {
-        const response = await fetch(`/api/leads/${leadId}`);
-        if (response.ok) {
-            const lead = await response.json();
-            document.getElementById('lead_id').value = lead.id;
-            document.getElementById('name').value = lead.name;
-            document.getElementById('email').value = lead.email;
-            document.getElementById('phone').value = lead.phone;
-            document.getElementById('status').value = lead.status;
-            document.getElementById('leadModalTitle').textContent = 'Editar Lead';
-            toggleModal('addLeadModal');
-        } else {
-            throw new Error('Error al cargar los datos del lead');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification(error.message, 'error');
-    }
+function viewLead(id) {
+    // Implementar vista detallada del lead
+    console.log('Ver lead:', id);
 }
 
-async function deleteLead(leadId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este lead?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/leads/${leadId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            showNotification('Lead eliminado exitosamente', 'success');
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            throw new Error('Error al eliminar el lead');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification(error.message, 'error');
-    }
+function editLead(id) {
+    // Implementar edición del lead
+    console.log('Editar lead:', id);
 }
 
-document.getElementById('leadForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const leadId = formData.get('lead_id');
-    const formDataObj = Object.fromEntries(formData.entries());
-    delete formDataObj.lead_id;
-    
-    try {
-        const url = leadId ? `/api/leads/${leadId}` : '/api/leads/';
-        const method = leadId ? 'PUT' : 'POST';
-        
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formDataObj)
-        });
-        
-        if (response.ok) {
-            showNotification(
-                leadId ? 'Lead actualizado exitosamente' : 'Lead agregado exitosamente',
-                'success'
-            );
-            toggleModal('addLeadModal');
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            const error = await response.json();
-            throw new Error(error.detail || 'Error al procesar el lead');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification(error.message, 'error');
-    }
-});
-
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white ${
-        type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    }`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Cerrar modal con click fuera
+// Cerrar modal si se hace clic fuera de él
 window.onclick = function(event) {
-    const modal = document.getElementById('addLeadModal');
-    if (event.target === modal) {
-        toggleModal('addLeadModal');
+    const modal = document.getElementById('newLeadModal');
+    if (event.target == modal) {
+        closeNewLeadModal();
     }
 }
 </script>

@@ -1,134 +1,67 @@
 {% extends "base.html" %}
 {% set active = 'appointments' %}
 
-{% block title %}Citas - Dental CRM{% endblock %}
-{% block header %}Gestión de Citas{% endblock %}
-
 {% block content %}
-<div class="container mx-auto">
-    <div class="flex justify-between items-center mb-6">
+<div class="container mx-auto px-4 py-8">
+    <!-- Botón para abrir el modal -->
+    <div class="mb-6 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-gray-800">Citas</h1>
-        <button onclick="toggleModal('addAppointmentModal')" 
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <button onclick="openNewAppointmentModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
             <i class="fas fa-plus mr-2"></i>Nueva Cita
         </button>
     </div>
 
-    <!-- Tabla de Citas -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
-        <table class="min-w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servicio</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% if appointments and appointments|length > 0 %}
-                    {% for appointment in appointments %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ appointment.patient.name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ appointment.date.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% set service_names = {
-                                'consulta': 'Consulta General',
-                                'limpieza': 'Limpieza Dental',
-                                'tratamiento': 'Tratamiento'
-                            } %}
-                            {{ service_names[appointment.service_type] }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if appointment.status == 'scheduled' %}bg-green-100 text-green-800
-                                {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
-                                {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
-                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                {% set status_names = {
-                                    'scheduled': 'Programada',
-                                    'cancelled': 'Cancelada',
-                                    'completed': 'Completada',
-                                    'pending': 'Pendiente'
-                                } %}
-                                {{ status_names[appointment.status] }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {% if appointment.status != 'cancelled' and appointment.status != 'completed' %}
-                                <button onclick="confirmCancelAppointment('{{ appointment.id }}')" 
-                                        class="text-red-600 hover:text-red-900"
-                                        title="Cancelar cita">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                            <div class="flex flex-col items-center justify-center py-6">
-                                <i class="fas fa-calendar-times text-4xl mb-2"></i>
-                                <p>No hay citas programadas</p>
-                                <button onclick="toggleModal('addAppointmentModal')" 
-                                        class="mt-4 text-blue-500 hover:text-blue-700">
-                                    <i class="fas fa-plus mr-1"></i>Programar nueva cita
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Modal Nueva Cita -->
-    <div id="addAppointmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <!-- Modal para nueva cita -->
+    <div id="newAppointmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4 text-center">Nueva Cita</h3>
-                <form id="newAppointmentForm" class="space-y-4">
-                    <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Nueva Cita</h3>
+                <form id="appointmentForm">
+                    <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="patient_id">
-                            Paciente
+                            Paciente *
                         </label>
-                        <select name="patient_id" required
-                                class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                            <option value="">Seleccionar paciente</option>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="patient_id" name="patient_id" required>
+                            <option value="">Seleccionar paciente...</option>
                             {% for patient in patients %}
                             <option value="{{ patient.id }}">{{ patient.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div>
+                    <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="date">
-                            Fecha y Hora
+                            Fecha y Hora *
                         </label>
-                        <input type="datetime-local" name="date" required
-                               min="{{ datetime.now().strftime('%Y-%m-%dT%H:%M') }}"
-                               class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="date" name="date" type="datetime-local" required>
                     </div>
-                    <div>
+                    <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="service_type">
-                            Servicio
+                            Tipo de Servicio *
                         </label>
-                        <select name="service_type" required
-                                class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                            <option value="">Seleccionar servicio</option>
-                            <option value="consulta">Consulta General</option>
-                            <option value="limpieza">Limpieza Dental</option>
-                            <option value="tratamiento">Tratamiento</option>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="service_type" name="service_type" required>
+                            <option value="">Seleccionar servicio...</option>
+                            <option value="CONSULTA">Consulta General</option>
+                            <option value="LIMPIEZA">Limpieza Dental</option>
+                            <option value="TRATAMIENTO">Tratamiento</option>
                         </select>
                     </div>
-                    <div class="flex items-center justify-between mt-6">
-                        <button type="button" onclick="toggleModal('addAppointmentModal')"
-                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
+                            Notas
+                        </label>
+                        <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" onclick="closeNewAppointmentModal()"
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
                             Cancelar
                         </button>
                         <button type="submit"
-                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                             Guardar
                         </button>
                     </div>
@@ -136,106 +69,153 @@
             </div>
         </div>
     </div>
+
+    <!-- Tabla de citas -->
+    <div class="bg-white shadow-md rounded my-6">
+        <table class="min-w-full">
+            <thead>
+                <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                    <th class="py-3 px-6 text-left">Paciente</th>
+                    <th class="py-3 px-6 text-left">Fecha y Hora</th>
+                    <th class="py-3 px-6 text-left">Servicio</th>
+                    <th class="py-3 px-6 text-center">Estado</th>
+                    <th class="py-3 px-6 text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm font-light">
+                {% for appointment in appointments %}
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                    <td class="py-3 px-6 text-left whitespace-nowrap">
+                        <div class="flex items-center">
+                            <span class="font-medium">{{ appointment.patient.name }}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ appointment.date.strftime('%d/%m/%Y %H:%M') }}
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {% set service_names = {
+                            'CONSULTA': 'Consulta General',
+                            'LIMPIEZA': 'Limpieza Dental',
+                            'TRATAMIENTO': 'Tratamiento'
+                        } %}
+                        {{ service_names[appointment.service_type] }}
+                    </td>
+                    <td class="py-3 px-6 text-center">
+                        <span class="px-3 py-1 text-sm rounded-full 
+                            {% if appointment.status == 'SCHEDULED' %}bg-blue-100 text-blue-800
+                            {% elif appointment.status == 'COMPLETED' %}bg-green-100 text-green-800
+                            {% elif appointment.status == 'CANCELLED' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% set status_names = {
+                                'SCHEDULED': 'Programada',
+                                'COMPLETED': 'Completada',
+                                'CANCELLED': 'Cancelada'
+                            } %}
+                            {{ status_names[appointment.status] }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-6 text-center">
+                        <div class="flex item-center justify-center">
+                            {% if appointment.status == 'SCHEDULED' %}
+                            <button onclick="cancelAppointment({{ appointment.id }})" 
+                                class="w-4 mr-2 transform hover:text-red-500 hover:scale-110">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            {% endif %}
+                            <button onclick="viewAppointment({{ appointment.id }})" 
+                                class="w-4 mr-2 transform hover:text-purple-500 hover:scale-110">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-function toggleModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal.classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    } else {
-        modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// Función para confirmar cancelación de cita
-function confirmCancelAppointment(appointmentId) {
-    if (confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
-        cancelAppointment(appointmentId);
-    }
-}
-
-// Función para cancelar cita
-async function cancelAppointment(appointmentId) {
-    try {
-        const response = await fetch(`/api/appointments/${appointmentId}/cancel`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('Cita cancelada exitosamente', 'success');
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            throw new Error(data.detail || 'Error al cancelar la cita');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification(error.message, 'error');
-    }
-}
-
-// Función para mostrar notificaciones
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg text-white ${
-        type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    }`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Manejo del formulario de nueva cita
-document.getElementById('newAppointmentForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const formDataObj = {
-        patient_id: parseInt(formData.get('patient_id')),
-        date: formData.get('date'),
-        service_type: formData.get('service_type')
-    };
+// Reemplaza la función openNewAppointmentModal con esta versión actualizada:
+function openNewAppointmentModal() {
+    document.getElementById('newAppointmentModal').classList.remove('hidden');
     
+    // Establecer fecha mínima como hoy
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajustar zona horaria
+    const today = now.toISOString().slice(0, 16);
+    
+    const dateInput = document.getElementById('date');
+    dateInput.min = today;
+    dateInput.value = today; // Establecer fecha actual como valor predeterminado
+}
+
+// Actualiza la parte del manejo del formulario:
+document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const dateInput = document.getElementById('date').value;
+    const formData = {
+        patient_id: document.getElementById('patient_id').value,
+        date: new Date(dateInput).toISOString(),
+        service_type: document.getElementById('service_type').value,
+        notes: document.getElementById('notes').value
+    };
+
     try {
         const response = await fetch('/api/appointments/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(formDataObj)
+            body: JSON.stringify(formData)
         });
-        
-        const data = await response.json();
-        
+
         if (response.ok) {
-            showNotification('Cita programada exitosamente', 'success');
-            toggleModal('addAppointmentModal');
-            setTimeout(() => window.location.reload(), 1500);
+            closeNewAppointmentModal();
+            window.location.reload();
         } else {
-            throw new Error(data.detail || 'Error al programar la cita');
+            const error = await response.json();
+            alert('Error: ' + error.detail);
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification(error.message, 'error');
+        alert('Error al crear la cita');
     }
 });
 
+async function cancelAppointment(id) {
+    if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/appointments/${id}/cancel`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert('Error: ' + error.detail);
+        }
+    } catch (error) {
+        alert('Error al cancelar la cita');
+    }
+}
+
+function viewAppointment(id) {
+    // Implementar vista detallada de la cita
+    console.log('Ver cita:', id);
+}
+
 // Cerrar modal si se hace clic fuera de él
 window.onclick = function(event) {
-    const modal = document.getElementById('addAppointmentModal');
-    if (event.target === modal) {
-        toggleModal('addAppointmentModal');
+    const modal = document.getElementById('newAppointmentModal');
+    if (event.target == modal) {
+        closeNewAppointmentModal();
     }
 }
 </script>

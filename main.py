@@ -1,12 +1,15 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from datetime import datetime, timezone
 from pathlib import Path
-from sqlalchemy.orm import Session
-from fastapi import Depends
+from typing import Optional
+
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.params import Form
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 # Importaciones de la aplicación
 from app.db.session import get_db, engine
@@ -14,6 +17,7 @@ from app.db.models.base import Base
 from app.db.models.patient import Patient
 from app.db.models.appointment import Appointment, ServiceType, AppointmentStatus
 from app.db.models.lead import Lead, LeadStatus
+
 
 # Crear tablas en la base de datos
 Base.metadata.drop_all(bind=engine) 
@@ -116,18 +120,22 @@ async def appointments_page(
 
 @app.post("/api/appointments/")
 async def create_appointment(
-    appointment_data: dict,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     try:
+        # Obtener datos del body JSON
+        appointment_data = await request.json()
+        
         # Convertir la fecha string a datetime
-        appointment_date = datetime.fromisoformat(appointment_data["date"].replace('Z', '+00:00'))
+        appointment_date = datetime.fromisoformat(appointment_data["date"])
         
         # Crear la nueva cita
         new_appointment = Appointment(
-            patient_id=appointment_data["patient_id"],
+            patient_id=int(appointment_data["patient_id"]),
             date=appointment_date,
             service_type=appointment_data["service_type"],
+            notes=appointment_data.get("notes"),
             status=AppointmentStatus.SCHEDULED
         )
         
@@ -142,6 +150,7 @@ async def create_appointment(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+    
 
 @app.put("/api/appointments/{appointment_id}/cancel")
 async def cancel_appointment(
@@ -178,6 +187,76 @@ async def leads_page(
             "leads": leads
         }
     )
+    
+@app.post("/patients/create")
+async def create_patient(
+    request: Request,
+    name: str = Form(...),
+    email: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        new_patient = Patient(
+            name=name,
+            email=email,
+            phone=phone,
+            notes=notes
+        )
+        db.add(new_patient)
+        db.commit()
+        db.refresh(new_patient)
+        return RedirectResponse(url="/patients", status_code=303)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/leads/create")
+async def create_lead(
+    request: Request,
+    name: str = Form(...),
+    email: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    source: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        new_lead = Lead(
+            name=name,
+            email=email,
+            phone=phone,
+            source=source,
+            notes=notes,
+            status=LeadStatus.NUEVO
+        )
+        db.add(new_lead)
+        db.commit()
+        db.refresh(new_lead)
+        return RedirectResponse(url="/leads", status_code=303)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/leads/{lead_id}/update-status")
+async def update_lead_status(
+    lead_id: int,
+    status: LeadStatus,
+    db: Session = Depends(get_db)
+):
+    try:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead no encontrado")
+        
+        lead.status = status
+        db.commit()
+        
+        return JSONResponse(content={"message": "Estado actualizado exitosamente"})
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

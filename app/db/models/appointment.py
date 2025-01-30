@@ -23,7 +23,7 @@ class Appointment(Base):
     date = Column(DateTime(timezone=True), nullable=False)
     service_type = Column(SQLEnum(ServiceType), nullable=False)
     status = Column(SQLEnum(AppointmentStatus), default=AppointmentStatus.SCHEDULED)
-    notes = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)  
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
