@@ -52,9 +52,10 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
 def get_static_url(request: Request):
     def _static_url(path: str) -> str:
-        return str(request.base_url) + "static/" + path
+        return request.url_for("static", path=path)
     return _static_url
 
+print(f"Static files directory: {str(BASE_DIR / 'app' / 'static')}")
 
 @app.get("/")
 @app.get("/dashboard")
