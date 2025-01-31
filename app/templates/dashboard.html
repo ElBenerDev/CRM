@@ -2,110 +2,147 @@
 {% set active = 'dashboard' %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="dashboard-container">
     <!-- Estadísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="stats-grid">
         <!-- Total Pacientes -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-gray-500 text-sm font-medium">Total Pacientes</h3>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.total_patients }}</p>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Pacientes</h3>
+                <p class="stat-value">{{ stats.total_patients }}</p>
+            </div>
         </div>
         <!-- Total Citas -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-gray-500 text-sm font-medium">Total Citas</h3>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.total_appointments }}</p>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Citas</h3>
+                <p class="stat-value">{{ stats.total_appointments }}</p>
+            </div>
         </div>
         <!-- Citas Hoy -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-gray-500 text-sm font-medium">Citas Hoy</h3>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.appointments_today }}</p>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Citas Hoy</h3>
+                <p class="stat-value">{{ stats.appointments_today }}</p>
+            </div>
         </div>
         <!-- Total Leads -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-gray-500 text-sm font-medium">Total Leads</h3>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.total_leads }}</p>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Leads</h3>
+                <p class="stat-value">{{ stats.total_leads }}</p>
+            </div>
         </div>
     </div>
 
-    <!-- Próximas Citas -->
-    <div class="bg-white rounded-lg shadow mb-8">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-medium text-gray-800">Próximas Citas</h2>
-        </div>
-        <div class="divide-y divide-gray-200">
-            {% if upcoming_appointments %}
-                {% for appointment in upcoming_appointments %}
-                <div class="p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="font-semibold text-gray-800">{{ appointment.patient.name }}</p>
-                            <p class="text-sm text-gray-600">
-                                <i class="fas fa-calendar-alt mr-1"></i>
-                                {{ appointment.date.strftime('%d/%m/%Y %H:%M') }}
-                            </p>
-                            <p class="text-sm text-gray-500">
-                                <i class="fas fa-tooth mr-1"></i>
-                                {% set service_names = {
-                                    'CONSULTA': 'Consulta General',
-                                    'LIMPIEZA': 'Limpieza Dental',
-                                    'TRATAMIENTO': 'Tratamiento'
+    <div class="dashboard-grid">
+        <!-- Próximas Citas -->
+        <div class="card appointments-card">
+            <div class="card-header">
+                <h2>Próximas Citas</h2>
+                <a href="/appointments" class="btn btn-secondary btn-sm">Ver todas</a>
+            </div>
+            <div class="card-content">
+                {% if upcoming_appointments %}
+                    <div class="appointments-list">
+                    {% for appointment in upcoming_appointments %}
+                        <div class="appointment-item">
+                            <div class="appointment-info">
+                                <div class="appointment-patient">
+                                    <i class="fas fa-user-circle"></i>
+                                    {{ appointment.patient.name }}
+                                </div>
+                                <div class="appointment-details">
+                                    <span class="appointment-date">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        {{ appointment.date.strftime('%d/%m/%Y %H:%M') }}
+                                    </span>
+                                    <span class="appointment-type">
+                                        <i class="fas fa-tooth"></i>
+                                        {% set service_names = {
+                                            'CONSULTA': 'Consulta General',
+                                            'LIMPIEZA': 'Limpieza Dental',
+                                            'TRATAMIENTO': 'Tratamiento'
+                                        } %}
+                                        {{ service_names[appointment.service_type] }}
+                                    </span>
+                                </div>
+                            </div>
+                            <span class="badge {% if appointment.status == 'SCHEDULED' %}badge-primary
+                                {% elif appointment.status == 'COMPLETED' %}badge-success
+                                {% elif appointment.status == 'CANCELLED' %}badge-danger
+                                {% else %}badge-secondary{% endif %}">
+                                {% set status_names = {
+                                    'SCHEDULED': 'Programada',
+                                    'COMPLETED': 'Completada',
+                                    'CANCELLED': 'Cancelada',
+                                    'PENDING': 'Pendiente'
                                 } %}
-                                {{ service_names[appointment.service_type] }}
-                            </p>
+                                {{ status_names[appointment.status] }}
+                            </span>
                         </div>
-                        <span class="px-3 py-1 text-sm rounded-full 
-                            {% if appointment.status == 'SCHEDULED' %}bg-blue-100 text-blue-800
-                            {% elif appointment.status == 'COMPLETED' %}bg-green-100 text-green-800
-                            {% elif appointment.status == 'CANCELLED' %}bg-red-100 text-red-800
-                            {% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {% set status_names = {
-                                'SCHEDULED': 'Programada',
-                                'COMPLETED': 'Completada',
-                                'CANCELLED': 'Cancelada',
-                                'PENDING': 'Pendiente'
-                            } %}
-                            {{ status_names[appointment.status] }}
-                        </span>
+                    {% endfor %}
                     </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="p-6 text-center text-gray-500">
-                    No hay citas próximas
-                </div>
-            {% endif %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>No hay citas próximas</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
-    </div>
 
-    <!-- Pacientes Recientes -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-medium text-gray-800">Pacientes Recientes</h2>
-        </div>
-        <div class="divide-y divide-gray-200">
-            {% if recent_patients %}
-                {% for patient in recent_patients %}
-                <div class="p-6">
-                    <p class="font-semibold text-gray-800">{{ patient.name }}</p>
-                    {% if patient.email %}
-                        <p class="text-sm text-gray-600">
-                            <i class="fas fa-envelope mr-1"></i>
-                            {{ patient.email }}
-                        </p>
-                    {% endif %}
-                    {% if patient.phone %}
-                        <p class="text-sm text-gray-500">
-                            <i class="fas fa-phone mr-1"></i>
-                            {{ patient.phone }}
-                        </p>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="p-6 text-center text-gray-500">
-                    No hay pacientes registrados
-                </div>
-            {% endif %}
+        <!-- Pacientes Recientes -->
+        <div class="card patients-card">
+            <div class="card-header">
+                <h2>Pacientes Recientes</h2>
+                <a href="/patients" class="btn btn-secondary btn-sm">Ver todos</a>
+            </div>
+            <div class="card-content">
+                {% if recent_patients %}
+                    <div class="patients-list">
+                    {% for patient in recent_patients %}
+                        <div class="patient-item">
+                            <div class="patient-avatar">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="patient-info">
+                                <div class="patient-name">{{ patient.name }}</div>
+                                {% if patient.email %}
+                                    <div class="patient-contact">
+                                        <i class="fas fa-envelope"></i>
+                                        {{ patient.email }}
+                                    </div>
+                                {% endif %}
+                                {% if patient.phone %}
+                                    <div class="patient-contact">
+                                        <i class="fas fa-phone"></i>
+                                        {{ patient.phone }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-user-slash"></i>
+                        <p>No hay pacientes registrados</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
