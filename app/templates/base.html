@@ -4,63 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Dental CRM{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.alpinejs.dev/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-gray-100">
-    <div class="min-h-screen flex">
+<body>
+    <div class="layout">
         <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-md">
-            <div class="p-4">
-                <h1 class="text-xl font-bold text-gray-800">Dental CRM</h1>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Dental CRM</h1>
             </div>
-            <nav class="mt-4">
-                <a href="/dashboard" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'dashboard' %}bg-gray-100{% endif %}">
-                    <span class="mx-4">Dashboard</span>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item {% if active == 'dashboard' %}active{% endif %}">
+                    <span>Dashboard</span>
                 </a>
-                <a href="/patients" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'patients' %}bg-gray-100{% endif %}">
-                    <span class="mx-4">Pacientes</span>
+                <a href="/patients" class="nav-item {% if active == 'patients' %}active{% endif %}">
+                    <span>Pacientes</span>
                 </a>
-                <a href="/appointments" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'appointments' %}bg-gray-100{% endif %}">
-                    <span class="mx-4">Citas</span>
+                <a href="/appointments" class="nav-item {% if active == 'appointments' %}active{% endif %}">
+                    <span>Citas</span>
                 </a>
-                <a href="/leads" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 {% if active == 'leads' %}bg-gray-100{% endif %}">
-                    <span class="mx-4">Leads</span>
+                <a href="/leads" class="nav-item {% if active == 'leads' %}active{% endif %}">
+                    <span>Leads</span>
                 </a>
-                <a href="/calendar" class="{% if active == 'calendar' %}active{% endif %}">
-                    <i class="fas fa-calendar"></i>
+                <a href="/calendar" class="nav-item {% if active == 'calendar' %}active{% endif %}">
                     <span>Calendario</span>
                 </a>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1">
+        <div class="main-content">
             <!-- Header -->
-            <header class="bg-white shadow">
-                <div class="mx-auto px-4 py-3">
-                    <h2 class="text-xl font-semibold text-gray-800">{% block header %}{% endblock %}</h2>
+            <header class="header">
+                <div class="header-content">
+                    <h2>{% block header %}{% endblock %}</h2>
                 </div>
             </header>
 
             <!-- Page Content -->
-            <main class="p-6">
+            <main class="content">
                 {% block content %}{% endblock %}
             </main>
         </div>
     </div>
 
     <!-- Toast Container -->
-    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+    <div id="toast-container"></div>
 
     <!-- Loading Indicator -->
-    <div id="loader" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <div id="loader" class="loader hidden">
+        <div class="spinner"></div>
     </div>
 
     <!-- Base Scripts -->
-    <script src="{{ url_for('static', path='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

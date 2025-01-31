@@ -1,96 +1,149 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Tus estilos personalizados con @apply aquí */
-
-/* Estilos globales */
+/* app/static/css/styles.css */
 :root {
-    --primary: #3B82F6;
+    --primary-color: #3B82F6;
     --primary-dark: #2563EB;
-    --secondary: #6B7280;
-    --success: #10B981;
-    --danger: #EF4444;
-    --warning: #F59E0B;
-    --info: #3B82F6;
+    --secondary-color: #6B7280;
+    --success-color: #10B981;
+    --danger-color: #EF4444;
+    --warning-color: #F59E0B;
+    --background-color: #f3f4f6;
+    --text-color: #1f2937;
+}
+
+/* Layout */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--background-color);
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: white;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+    padding: 1rem;
+}
+
+.sidebar-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-color);
+}
+
+.sidebar-nav {
+    padding: 1rem 0;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.nav-item:hover {
+    background-color: var(--background-color);
+}
+
+.nav-item.active {
+    background-color: var(--background-color);
+    font-weight: 500;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+    padding: 1rem;
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-color);
+}
+
+.content {
+    padding: 1.5rem;
 }
 
 /* Utilities */
 .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
 }
 
 .btn-primary {
-    @apply bg-blue-500 text-white hover:bg-blue-600;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
 }
 
 .btn-danger {
-    @apply bg-red-500 text-white hover:bg-red-600;
+    background-color: var(--danger-color);
+    color: white;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
+/* Toast & Loader */
+#toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
 }
 
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
+.loader {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
+.loader.hidden {
+    display: none;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* Loading Spinner */
 .spinner {
-    @apply animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
-/* Toast Notifications */
-.toast {
-    @apply fixed right-4 top-4 px-4 py-2 rounded-lg shadow-lg text-white transform transition-all duration-300 z-50;
-}
-
-.toast-success {
-    @apply bg-green-500;
-}
-
-.toast-error {
-    @apply bg-red-500;
-}
-
-/* Modal */
-.modal {
-    @apply fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50;
-}
-
-.modal-content {
-    @apply relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white;
-}
-
-/* Form Styles */
-.form-group {
-    @apply mb-4;
-}
-
-.form-label {
-    @apply block text-gray-700 text-sm font-bold mb-2;
-}
-
-.form-input {
-    @apply shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline;
-}
-
-/* Dashboard Cards */
-.stat-card {
-    @apply bg-white rounded-lg shadow p-6;
-}
-
-.stat-icon {
-    @apply p-3 rounded-full bg-opacity-20 text-2xl;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
