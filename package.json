@@ -1,28 +1,13 @@
-{
+﻿{
   "name": "crm",
   "version": "1.0.0",
-  "main": "postcss.config.js",
-  "directories": {
-    "test": "tests"
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css --watch",
+    "build": "tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.1",
-    "tailwindcss": "^4.0.2"
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.17"
   }
 }
-
-$packageJson = Get-Content "package.json" -Raw | ConvertFrom-Json
-$packageJson.scripts = @{
-    "test" = "echo `"Error: no test specified`" && exit 1"
-    "dev" = "npx tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css --watch"
-    "build" = "npx tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css"
-}
-$packageJson | ConvertTo-Json -Depth 10 | Set-Content "package.json"
