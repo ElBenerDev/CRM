@@ -1,0 +1,171 @@
+.leads-container {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.leads-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.lead-item {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    transition: var(--transition);
+}
+
+.lead-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.lead-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.lead-info {
+    flex: 1;
+}
+
+.lead-name {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+}
+
+.lead-contact {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.lead-contact span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lead-status {
+    font-size: 0.875rem;
+}
+
+.lead-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+}
+
+.lead-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lead-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Kanban Board para Leads */
+.leads-kanban {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.kanban-column {
+    background: #f8fafc;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+}
+
+.kanban-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.kanban-title {
+    font-weight: 500;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kanban-count {
+    background: #e5e7eb;
+    color: var(--secondary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+}
+
+/* Estados de leads */
+.new-lead {
+    border-left: 3px solid var(--primary-color);
+}
+
+.contacted-lead {
+    border-left: 3px solid var(--warning-color);
+}
+
+.qualified-lead {
+    border-left: 3px solid var(--success-color);
+}
+
+.lost-lead {
+    border-left: 3px solid var(--danger-color);
+}
+
+/* Empty State */
+.empty-leads {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: white;
+    border-radius: var(--border-radius);
+    color: var(--secondary-color);
+}
+
+.empty-leads i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .leads-container {
+        flex-direction: column;
+    }
+    
+    .leads-kanban {
+        grid-template-columns: 1fr;
+    }
+    
+    .lead-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .lead-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}

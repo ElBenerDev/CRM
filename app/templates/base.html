@@ -18,18 +18,23 @@
             </div>
             <nav class="sidebar-nav">
                 <a href="/dashboard" class="nav-item {% if active == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>
                     <span>Dashboard</span>
                 </a>
                 <a href="/patients" class="nav-item {% if active == 'patients' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
                     <span>Pacientes</span>
                 </a>
                 <a href="/appointments" class="nav-item {% if active == 'appointments' %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i>
                     <span>Citas</span>
                 </a>
                 <a href="/leads" class="nav-item {% if active == 'leads' %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i>
                     <span>Leads</span>
                 </a>
                 <a href="/calendar" class="nav-item {% if active == 'calendar' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i>
                     <span>Calendario</span>
                 </a>
             </nav>
@@ -63,9 +68,6 @@
     <script src="{{ static_url('js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 
-    <script>
-        console.log('CSS URL:', '{{ static_url("css/styles.css") }}');
-    </script>
 
 </body>
 </html>

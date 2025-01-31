@@ -1,87 +1,76 @@
 {% extends "base.html" %}
 {% set active = 'calendar' %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ static_url('css/calendar.css') }}">
-{% endblock %}
-
 {% block content %}
-<div class="calendar-container">
-    <div class="calendar-header">
-        <button id="prevMonth" class="flex items-center">
-            <i class="fas fa-chevron-left mr-2"></i> Anterior
-        </button>
-        <h2 id="currentMonth" class="text-2xl font-bold"></h2>
-        <button id="nextMonth" class="flex items-center">
-            Siguiente <i class="fas fa-chevron-right ml-2"></i>
-        </button>
-    </div>
-    
-    <!-- Días de la semana -->
-    <div class="grid grid-cols-7 gap-4 mb-4">
-        {% for day in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}
-        <div class="text-center font-semibold text-gray-600">{{ day }}</div>
-        {% endfor %}
-    </div>
+<div class="page-container">
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <button id="prevMonth" class="btn btn-secondary">
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <h2 id="currentMonth"></h2>
+            <button id="nextMonth" class="btn btn-secondary">
+                Siguiente <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="calendar-days">
+            {% for day in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}
+            <div>{{ day }}</div>
+            {% endfor %}
+        </div>
 
-    <div id="calendar" class="calendar-grid"></div>
+        <div id="calendar" class="calendar-grid"></div>
+    </div>
 </div>
 
 <!-- Modal para citas -->
 <div id="appointmentModal" class="modal">
     <div class="modal-content">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold">Gestionar Cita</h3>
-            <button onclick="document.getElementById('appointmentModal').classList.add('hidden')"
-                    class="text-gray-500 hover:text-gray-700">
+        <div class="modal-header">
+            <h3>Gestionar Cita</h3>
+            <button onclick="closeAppointmentModal()" class="modal-close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <form id="appointmentForm" class="space-y-4">
+        <form id="appointmentForm" class="form">
             <input type="hidden" id="appointmentId">
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Paciente</label>
-                <select id="patientSelect" name="patient_id" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div class="form-group">
+                <label for="patientSelect">Paciente</label>
+                <select id="patientSelect" name="patient_id" required>
                     {% for patient in patients %}
                     <option value="{{ patient.id }}">{{ patient.name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Fecha</label>
-                    <input type="date" id="appointmentDate" name="date" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="appointmentDate">Fecha</label>
+                    <input type="date" id="appointmentDate" name="date" required>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Hora</label>
-                    <input type="time" id="appointmentTime" name="time" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                <div class="form-group">
+                    <label for="appointmentTime">Hora</label>
+                    <input type="time" id="appointmentTime" name="time" required>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Tipo de Cita</label>
-                <select id="appointmentType" name="service_type" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                    <option value="consulta">Consulta General</option>
-                    <option value="limpieza">Limpieza Dental</option>
-                    <option value="tratamiento">Tratamiento</option>
+            <div class="form-group">
+                <label for="appointmentType">Tipo de Cita</label>
+                <select id="appointmentType" name="service_type" required>
+                    <option value="CONSULTA">Consulta General</option>
+                    <option value="LIMPIEZA">Limpieza Dental</option>
+                    <option value="TRATAMIENTO">Tratamiento</option>
                 </select>
             </div>
 
-            <div class="flex justify-end space-x-3">
-                <button type="button" 
-                        onclick="document.getElementById('appointmentModal').classList.add('hidden')"
-                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            <div class="modal-footer">
+                <button type="button" onclick="closeAppointmentModal()" class="btn btn-secondary">
                     Cancelar
                 </button>
-                <button type="submit"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                <button type="submit" class="btn btn-primary">
                     Guardar
                 </button>
             </div>
@@ -90,9 +79,7 @@
 </div>
 {% endblock %}
 
-
 {% block extra_js %}
 <script src="{{ static_url('js/api.js') }}"></script>
 <script src="{{ static_url('js/calendar.js') }}"></script>
-<script src="{{ static_url('js/appointments.js') }}"></script>
 {% endblock %}

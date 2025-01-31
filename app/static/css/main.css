@@ -9,9 +9,11 @@
 @import 'components/cards.css';
 @import 'components/modals.css';
 @import 'components/badges.css';
+@import 'components/utilities.css';
 
 /* Pages */
 @import 'pages/dashboard.css';
 @import 'pages/patients.css';
 @import 'pages/appointments.css';
+@import 'pages/calendar.css';
 @import 'pages/leads.css';

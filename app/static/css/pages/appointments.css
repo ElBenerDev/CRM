@@ -1,0 +1,116 @@
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.appointment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: white;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.appointment-item:hover {
+    background: #f8fafc;
+}
+
+.appointment-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.appointment-patient {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.appointment-patient i {
+    color: var(--secondary-color);
+}
+
+.appointment-details {
+    display: flex;
+    gap: 1.5rem;
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+.appointment-date,
+.appointment-type,
+.appointment-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.appointment-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Filtros de citas */
+.appointments-filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-weight: 500;
+    color: var(--secondary-color);
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: var(--border-radius);
+    background: white;
+}
+
+/* Estado de citas vacío */
+.empty-appointments {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: white;
+    border-radius: var(--border-radius);
+    color: var(--secondary-color);
+}
+
+.empty-appointments i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .appointment-details {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .appointments-filters {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        width: 100%;
+    }
+}
