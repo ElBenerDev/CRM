@@ -1,0 +1,40 @@
+<!-- templates/calendar.html -->
+<div class="calendar-container">
+    <div class="calendar-header">
+        <button id="prevMonth">Anterior</button>
+        <h2 id="currentMonth">Enero 2025</h2>
+        <button id="nextMonth">Siguiente</button>
+    </div>
+    <div id="calendar" class="calendar-grid"></div>
+</div>
+
+<!-- Modal para crear/editar citas -->
+<div id="appointmentModal" class="modal">
+    <div class="modal-content">
+        <h3>Gestionar Cita</h3>
+        <form id="appointmentForm">
+            <input type="hidden" id="appointmentId">
+            <div class="form-group">
+                <label>Paciente</label>
+                <select id="patientSelect" required></select>
+            </div>
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="appointmentDate" required>
+            </div>
+            <div class="form-group">
+                <label>Hora</label>
+                <input type="time" id="appointmentTime" required>
+            </div>
+            <div class="form-group">
+                <label>Tipo de Cita</label>
+                <select id="appointmentType" required>
+                    <option value="consulta">Consulta</option>
+                    <option value="limpieza">Limpieza</option>
+                    <option value="tratamiento">Tratamiento</option>
+                </select>
+            </div>
+            <button type="submit">Guardar</button>
+        </form>
+    </div>
+</div>

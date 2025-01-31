@@ -1,3 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tus estilos personalizados con @apply aquí */
+
 /* Estilos globales */
 :root {
     --primary: #3B82F6;
