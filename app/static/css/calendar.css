@@ -1,36 +1,62 @@
 /* static/css/calendar.css */
 .calendar-container {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    @apply max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg;
+}
+
+.calendar-header {
+    @apply flex items-center justify-between mb-6;
+}
+
+.calendar-header button {
+    @apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors;
+}
+
+.calendar-header h2 {
+    @apply text-2xl font-bold text-gray-800;
 }
 
 .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
-    margin-top: 20px;
+    @apply grid grid-cols-7 gap-4;
 }
 
 .calendar-day {
-    min-height: 120px;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 4px;
+    @apply min-h-[150px] p-3 border border-gray-200 rounded-lg relative;
 }
 
-.calendar-day:hover {
-    background-color: #f8f9fa;
+.day-header {
+    @apply text-right mb-2 text-gray-600;
+}
+
+.appointments-container {
+    @apply space-y-2;
 }
 
 .appointment-item {
-    margin: 5px 0;
-    padding: 5px;
-    background: #e3f2fd;
-    border-radius: 3px;
-    font-size: 0.9em;
-    cursor: pointer;
+    @apply p-2 bg-blue-50 rounded text-sm hover:bg-blue-100 cursor-pointer;
+}
+
+.appointment-item .time {
+    @apply font-semibold text-blue-600;
+}
+
+.appointment-item .patient {
+    @apply text-gray-700;
+}
+
+.appointment-item .type {
+    @apply text-xs text-gray-500;
+}
+
+.add-appointment {
+    @apply absolute bottom-2 right-2 w-6 h-6 bg-green-500 text-white rounded-full 
+           flex items-center justify-center hover:bg-green-600 transition-colors;
+}
+
+/* Modal styles */
+.modal {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden;
+}
+
+.modal-content {
+    @apply bg-white p-6 rounded-lg shadow-xl max-w-md w-full;
 }

@@ -18,6 +18,8 @@ from app.db.models.patient import Patient
 from app.db.models.appointment import Appointment, ServiceType, AppointmentStatus
 from app.db.models.lead import Lead, LeadStatus
 
+from app.api.v1.router import api_router
+
 
 # Crear tablas en la base de datos
 def init_db():
@@ -39,6 +41,7 @@ def init_db():
 init_db()
 
 app = FastAPI(title="Dental CRM")
+app.include_router(api_router, prefix="/api/v1")
 
 # Montar archivos estáticos
 BASE_DIR = Path(__file__).resolve().parent
@@ -272,6 +275,25 @@ async def update_lead_status(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/calendar")
+async def calendar_page(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Obtener la lista de pacientes para el select del formulario
+    patients = db.query(Patient).all()
+    
+    return templates.TemplateResponse(
+        "calendar.html",
+        {
+            "request": request,
+            "active": "calendar",
+            "patients": patients
+        }
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

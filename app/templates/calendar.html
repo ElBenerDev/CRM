@@ -1,40 +1,93 @@
 <!-- templates/calendar.html -->
+{% extends "base.html" %}
+
+{% block content %}
 <div class="calendar-container">
     <div class="calendar-header">
-        <button id="prevMonth">Anterior</button>
-        <h2 id="currentMonth">Enero 2025</h2>
-        <button id="nextMonth">Siguiente</button>
+        <button id="prevMonth" class="flex items-center">
+            <i class="fas fa-chevron-left mr-2"></i> Anterior
+        </button>
+        <h2 id="currentMonth" class="text-2xl font-bold"></h2>
+        <button id="nextMonth" class="flex items-center">
+            Siguiente <i class="fas fa-chevron-right ml-2"></i>
+        </button>
     </div>
+    
+    <!-- Días de la semana -->
+    <div class="grid grid-cols-7 gap-4 mb-4">
+        {% for day in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}
+        <div class="text-center font-semibold text-gray-600">{{ day }}</div>
+        {% endfor %}
+    </div>
+
     <div id="calendar" class="calendar-grid"></div>
 </div>
 
-<!-- Modal para crear/editar citas -->
+<!-- Modal para citas -->
 <div id="appointmentModal" class="modal">
     <div class="modal-content">
-        <h3>Gestionar Cita</h3>
-        <form id="appointmentForm">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Gestionar Cita</h3>
+            <button onclick="document.getElementById('appointmentModal').classList.add('hidden')"
+                    class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="appointmentForm" class="space-y-4">
             <input type="hidden" id="appointmentId">
-            <div class="form-group">
-                <label>Paciente</label>
-                <select id="patientSelect" required></select>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Paciente</label>
+                <select id="patientSelect" name="patient_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    {% for patient in patients %}
+                    <option value="{{ patient.id }}">{{ patient.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="form-group">
-                <label>Fecha</label>
-                <input type="date" id="appointmentDate" required>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Fecha</label>
+                    <input type="date" id="appointmentDate" name="date" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Hora</label>
+                    <input type="time" id="appointmentTime" name="time" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
             </div>
-            <div class="form-group">
-                <label>Hora</label>
-                <input type="time" id="appointmentTime" required>
-            </div>
-            <div class="form-group">
-                <label>Tipo de Cita</label>
-                <select id="appointmentType" required>
-                    <option value="consulta">Consulta</option>
-                    <option value="limpieza">Limpieza</option>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tipo de Cita</label>
+                <select id="appointmentType" name="service_type" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <option value="consulta">Consulta General</option>
+                    <option value="limpieza">Limpieza Dental</option>
                     <option value="tratamiento">Tratamiento</option>
                 </select>
             </div>
-            <button type="submit">Guardar</button>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" 
+                        onclick="document.getElementById('appointmentModal').classList.add('hidden')"
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                    Guardar
+                </button>
+            </div>
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/appointments.js') }}"></script>
+{% endblock %}
