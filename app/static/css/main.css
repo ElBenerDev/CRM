@@ -1,0 +1,6 @@
+$mainCss = @"
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+"@
+Set-Content -Path "app/static/css/main.css" -Value $mainCss -Encoding UTF8

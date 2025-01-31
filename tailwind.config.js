@@ -1,11 +1,14 @@
+$tailwindConfig = @"
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: [
-      "./templates/**/*.{html,js}",
-      "./static/**/*.{html,js}"
-    ],
-    theme: {
-      extend: {},
-    },
-    plugins: [],
-  }
+  content: [
+    './app/templates/**/*.{html,js}',
+    './app/static/**/*.{html,js}'
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+"@
+Set-Content -Path "tailwind.config.js" -Value $tailwindConfigs
