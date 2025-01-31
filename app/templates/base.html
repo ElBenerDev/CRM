@@ -1,14 +1,37 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Dental CRM{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ static_url('css/main.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    {% block extra_css %}{% endblock %}
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Dental CRM{% endblock %}</title>
+        
+        <!-- Fonts -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        
+        <!-- Base -->
+        <link rel="stylesheet" href="{{ static_url('css/layout.css') }}">
+        
+        <!-- Components -->
+        <link rel="stylesheet" href="{{ static_url('css/components/buttons.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/components/forms.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/components/tables.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/components/cards.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/components/modals.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/components/badges.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/components/utilities.css') }}">
+        
+        <!-- Pages -->
+        <link rel="stylesheet" href="{{ static_url('css/pages/dashboard.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/pages/patients.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/pages/appointments.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/pages/calendar.css') }}">
+        <link rel="stylesheet" href="{{ static_url('css/pages/leads.css') }}">
+        
+        <!-- Icons -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        
+        {% block extra_css %}{% endblock %}
+    </head>
 <body>
     <div class="layout">
         <!-- Sidebar -->
