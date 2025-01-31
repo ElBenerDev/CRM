@@ -91,6 +91,7 @@ async def dashboard(
         "dashboard.html",
         {
             "request": request,
+            "static_url": get_static_url(request),  # Agregar esta línea
             "active": "dashboard",
             "stats": {
                 "total_patients": total_patients,
