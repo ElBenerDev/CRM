@@ -1,5 +1,9 @@
-<!-- templates/calendar.html -->
 {% extends "base.html" %}
+{% set active = 'calendar' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ static_url('css/calendar.css') }}">
+{% endblock %}
 
 {% block content %}
 <div class="calendar-container">
@@ -86,8 +90,9 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/api.js') }}"></script>
-<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
-<script src="{{ url_for('static', filename='js/appointments.js') }}"></script>
+
+{% block extra_js %}
+<script src="{{ static_url('js/api.js') }}"></script>
+<script src="{{ static_url('js/calendar.js') }}"></script>
+<script src="{{ static_url('js/appointments.js') }}"></script>
 {% endblock %}

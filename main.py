@@ -50,6 +50,12 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), na
 # Configurar templates
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
+def get_static_url(request: Request):
+    def _static_url(path: str) -> str:
+        return str(request.base_url) + "static/" + path
+    return _static_url
+
+
 @app.get("/")
 @app.get("/dashboard")
 async def dashboard(
@@ -99,25 +105,20 @@ async def dashboard(
     )
 
 @app.get("/patients")
-async def patients_page(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def patients_page(request: Request, db: Session = Depends(get_db)):
     patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
     return templates.TemplateResponse(
         "patients.html",
         {
             "request": request,
+            "static_url": get_static_url(request),
             "active": "patients",
             "patients": patients
         }
     )
 
 @app.get("/appointments")
-async def appointments_page(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def appointments_page(request: Request, db: Session = Depends(get_db)):
     appointments = db.query(Appointment)\
         .join(Patient)\
         .order_by(Appointment.date.desc())\
@@ -129,6 +130,7 @@ async def appointments_page(
         "appointments.html",
         {
             "request": request,
+            "static_url": get_static_url(request),
             "active": "appointments",
             "appointments": appointments,
             "patients": patients,
@@ -192,15 +194,13 @@ async def cancel_appointment(
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/leads")
-async def leads_page(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def leads_page(request: Request, db: Session = Depends(get_db)):
     leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
     return templates.TemplateResponse(
         "leads.html",
         {
             "request": request,
+            "static_url": get_static_url(request),
             "active": "leads",
             "leads": leads
         }
@@ -278,17 +278,13 @@ async def update_lead_status(
 
 
 @app.get("/calendar")
-async def calendar_page(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    # Obtener la lista de pacientes para el select del formulario
+async def calendar_page(request: Request, db: Session = Depends(get_db)):
     patients = db.query(Patient).all()
-    
     return templates.TemplateResponse(
         "calendar.html",
         {
             "request": request,
+            "static_url": get_static_url(request),
             "active": "calendar",
             "patients": patients
         }
