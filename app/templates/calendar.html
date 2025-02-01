@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% set active = 'calendar' %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ static_url('css/pages/calendar.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="page-container">
     <div class="calendar-container">

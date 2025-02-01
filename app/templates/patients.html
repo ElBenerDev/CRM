@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% set active = 'patients' %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ static_url('css/pages/patients.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="page-container">
     <!-- Header con botón -->

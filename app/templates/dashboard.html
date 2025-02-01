@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% set active = 'dashboard' %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ static_url('css/pages/dashboard.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="dashboard-container">
     <!-- Estadísticas -->

@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% set active = 'leads' %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ static_url('css/pages/leads.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Botón para abrir el modal -->
