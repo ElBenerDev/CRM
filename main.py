@@ -71,14 +71,14 @@ async def dashboard(
     # Citas de hoy
     today = datetime.now(timezone.utc)
     appointments_today = db.query(func.count(Appointment.id))\
-        .filter(func.date(Appointment.date) == today.date())\
+        .filter(func.date(Appointment.datetime) == today.date())\
         .scalar() or 0
 
     # Próximas citas
     upcoming_appointments = db.query(Appointment)\
         .join(Patient)\
-        .filter(Appointment.date >= today)\
-        .order_by(Appointment.date)\
+        .filter(Appointment.datetime >= today)\
+        .order_by(Appointment.datetime)\
         .limit(5)\
         .all()
 
