@@ -29,7 +29,20 @@
                 minute: '2-digit',
                 hour12: true
             },
-            events: '/api/v1/appointments/',
+            // Cambiamos la configuración de eventos para usar un eventSource
+            eventSources: [{
+                url: '/api/v1/appointments/',
+                method: 'GET',
+                extraParams: function(start, end) {
+                    return {
+                        start: start.startStr,
+                        end: end.endStr
+                    };
+                },
+                failure: function() {
+                    alert('Error al cargar los eventos');
+                }
+            }],
             eventClick: function(info) {
                 openAppointmentModal(info.event);
             },
@@ -50,7 +63,7 @@
                 };
             }
         });
-
+        
         calendar.render();
 
         // Manejador del formulario de citas
