@@ -1,6 +1,6 @@
-from typing import Optional, List
 from pydantic import BaseModel
-from app.schemas.common import TimestampedSchema
+from datetime import datetime
+from typing import Optional
 
 class PatientBase(BaseModel):
     name: str
@@ -12,20 +12,13 @@ class PatientCreate(PatientBase):
     pass
 
 class PatientUpdate(PatientBase):
-    pass
+    name: Optional[str] = None
 
-class PatientResponse(PatientBase, TimestampedSchema):
+class PatientResponse(PatientBase):
     id: int
-    created_by: Optional[int] = None
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
-
-# Esta clase se usa solo para las respuestas que incluyen citas
-class PatientWithAppointments(PatientResponse):
-    appointments: List['AppointmentResponse'] = []
-
-    class Config:
-        from_attributes = True
-
-from app.schemas.appointment import AppointmentResponse  # importación al final

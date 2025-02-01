@@ -1,6 +1,6 @@
 from datetime import datetime as dt
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from sqlalchemy.orm import Mapped, relationship, RelationshipProperty
+from sqlalchemy.orm import Mapped, relationship
 from typing import List, Optional, TYPE_CHECKING
 from app.db.base_class import Base
 
@@ -20,7 +20,6 @@ class Patient(Base):
     created_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now)
     updated_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now, onupdate=dt.now)
 
-    # Definimos las relaciones fuera del bloque TYPE_CHECKING
     appointments: Mapped[List["Appointment"]] = relationship(
         "Appointment", back_populates="patient"
     )

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.db.models.appointment import Appointment, AppointmentStatus
+from app.db.models.appointment import Appointment, AppointmentStatus, ServiceType
 from app.schemas.appointment import (
     AppointmentCreate, 
     AppointmentResponse, 
@@ -64,8 +64,3 @@ async def create_appointment(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-    
-class Appointment(Base):
-    __tablename__ = "appointments"
-    # ... otros campos ...
-    patient = relationship("Patient", back_populates="appointments")

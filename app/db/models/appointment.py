@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, DateTime, String, ForeignKey, Text, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, relationship, RelationshipProperty
+from sqlalchemy.orm import Mapped, relationship
 from datetime import datetime as dt
 from typing import Optional, TYPE_CHECKING
 from app.db.base_class import Base
@@ -34,7 +34,6 @@ class Appointment(Base):
     created_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now)
     updated_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now, onupdate=dt.now)
 
-    # Definimos las relaciones fuera del bloque TYPE_CHECKING
     patient: Mapped["Patient"] = relationship(
         "Patient", back_populates="appointments"
     )
