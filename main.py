@@ -71,13 +71,13 @@ async def dashboard(
     # Citas de hoy
     today = datetime.now(timezone.utc)
     appointments_today = db.query(func.count(Appointment.id))\
-        .filter(func.date(Appointment.date) == today.date())\
+        .filter(func.date(Appointment.datetime) == today.date())\
         .scalar() or 0
 
     upcoming_appointments = db.query(Appointment)\
         .join(Patient)\
-        .filter(Appointment.date >= today)\
-        .order_by(Appointment.date)\
+        .filter(Appointment.datetime >= today)\
+        .order_by(Appointment.datetime)\
         .limit(5)\
         .all()
 
@@ -122,7 +122,7 @@ async def patients_page(request: Request, db: Session = Depends(get_db)):
 async def appointments_page(request: Request, db: Session = Depends(get_db)):
     appointments = db.query(Appointment)\
         .join(Patient)\
-        .order_by(Appointment.date.desc())\
+        .order_by(Appointment.datetime.desc())\
         .all()
     
     patients = db.query(Patient).order_by(Patient.name).all()
