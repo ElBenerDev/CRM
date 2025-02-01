@@ -1,23 +1,39 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone, timedelta
-from app.api.deps import get_current_user
+from datetime import datetime, timedelta
 from app.db.session import get_db
 from app.db.models.appointment import Appointment, AppointmentStatus, ServiceType
-from app.schemas.appointment import (
-    AppointmentCreate, 
-    AppointmentResponse, 
-    AppointmentUpdate
-)
-from typing import List
+from pydantic import BaseModel
+from typing import List, Optional
 
+# Definiendo los schemas Pydantic
+class AppointmentCreate(BaseModel):
+    patient_id: int
+    date: str  # formato YYYY-MM-DD
+    time: str  # formato HH:MM
+    service_type: ServiceType
+    notes: Optional[str] = None
+    duration: Optional[int] = 30
+
+class AppointmentResponse(BaseModel):
+    id: int
+    patient_id: int
+    datetime: datetime
+    service_type: ServiceType
+    notes: Optional[str]
+    duration: int
+    status: AppointmentStatus
+
+    class Config:
+        from_attributes = True
+
+# El router y los endpoints
 router = APIRouter()
 
 @router.get("/", response_model=List[dict])
 async def get_appointments(
     request: Request,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     appointments = db.query(Appointment).all()
     return [{
@@ -38,8 +54,7 @@ async def get_appointments(
 async def create_appointment(
     appointment: AppointmentCreate,
     request: Request,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     try:
         date_str = f"{appointment.date}T{appointment.time}"
@@ -51,7 +66,6 @@ async def create_appointment(
             service_type=appointment.service_type,
             notes=appointment.notes,
             duration=appointment.duration or 30,
-            created_by=current_user.id,
             status=AppointmentStatus.SCHEDULED
         )
         
