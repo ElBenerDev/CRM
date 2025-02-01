@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime as dt, date, time
-from typing import Optional, Annotated
+from typing import Optional
 from app.db.models.appointment import ServiceType, AppointmentStatus
 
 class AppointmentBase(BaseModel):
@@ -18,11 +18,10 @@ class AppointmentUpdate(AppointmentBase):
 
 class AppointmentResponse(AppointmentBase):
     id: int
-    datetime: dt
+    date: dt  # Cambiado de datetime a date para coincidir con el modelo
     status: AppointmentStatus
-    created_by: int
-    created_at: dt
-    updated_at: dt
+    created_at: Optional[dt] = None
+    updated_at: Optional[dt] = None
 
     class Config:
         from_attributes = True
