@@ -34,25 +34,30 @@ async def create_appointment(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # Convertir fecha y hora a datetime
-    date_str = f"{appointment.date}T{appointment.time}"
-    appointment_datetime = datetime.fromisoformat(date_str)
-    
-    new_appointment = Appointment(
-        patient_id=appointment.patient_id,
-        datetime=appointment_datetime,
-        service_type=appointment.service_type,
-        duration=appointment.duration  # Puedes establecer una duración predeterminada
-    )
-    
-    db.add(new_appointment)
     try:
+        # Convertir fecha y hora a datetime
+        date_str = f"{appointment.date}T{appointment.time}"
+        appointment_datetime = datetime.fromisoformat(date_str)
+        
+        new_appointment = Appointment(
+            patient_id=appointment.patient_id,
+            datetime=appointment_datetime,
+            service_type=appointment.service_type,
+            notes=appointment.notes,
+            duration=appointment.duration,
+            created_by=current_user.id
+        )
+        
+        db.add(new_appointment)
         db.commit()
         db.refresh(new_appointment)
         return new_appointment
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid date or time format")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+    
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)
 async def get_appointment(
