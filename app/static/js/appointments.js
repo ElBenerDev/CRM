@@ -16,7 +16,7 @@ const appointmentForms = {
     edit: async (id, formData) => {
         try {
             showLoader();
-            const response = await api.put(`/api/v1/appointments/${id}`, formData);
+            const response = await api.put(`/api/v1/appointments/${id}/`, formData);
             showToast('Cita actualizada exitosamente');
             location.reload();
         } catch (error) {
@@ -31,7 +31,7 @@ const appointmentForms = {
         
         try {
             showLoader();
-            await api.delete(`/api/v1/appointments/${id}`);
+            await api.delete(`/api/v1/appointments/${id}/`);
             showToast('Cita cancelada exitosamente');
             location.reload();
         } catch (error) {
@@ -44,7 +44,7 @@ const appointmentForms = {
     complete: async (id) => {
         try {
             showLoader();
-            await api.put(`/api/v1/appointments/${id}/complete`, {});
+            await api.put(`/api/v1/appointments/${id}/complete/`, {});
             showToast('Cita marcada como completada');
             location.reload();
         } catch (error) {
