@@ -85,7 +85,7 @@
                         </div>
                     </td>
                     <td>
-                        {{ appointment.date.strftime('%d/%m/%Y %H:%M') }}
+                        {{ appointment.datetime.strftime('%d/%m/%Y %H:%M') }}
                     </td>
                     <td>
                         {% set service_names = {
