@@ -1,12 +1,11 @@
-/* Calendar Container */
+/* calendar.css */
 .calendar-container {
-    padding: 2rem;
     background: white;
     border-radius: var(--border-radius);
+    padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Calendar Header */
 .calendar-header {
     display: flex;
     justify-content: space-between;
@@ -14,129 +13,98 @@
     margin-bottom: 2rem;
 }
 
-.calendar-header button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid #e5e7eb;
-    border-radius: var(--border-radius);
-    background: white;
-    color: var(--text-color);
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.calendar-header button:hover {
-    background: #f3f4f6;
-    border-color: #d1d5db;
-}
-
 .calendar-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-color);
 }
 
-/* Calendar Grid */
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-weight: 500;
+    color: var(--secondary-color);
+    padding: 0.5rem;
+}
+
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 0.5rem;
 }
 
-/* Calendar Days Header */
-.calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.calendar-days div {
-    font-weight: 600;
-    color: var(--secondary-color);
-    padding: 0.5rem;
-}
-
-/* Calendar Cells */
-.calendar-cell {
+.calendar-day {
     aspect-ratio: 1;
     padding: 0.5rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
     cursor: pointer;
     transition: var(--transition);
 }
 
-.calendar-cell:hover {
-    background: #f3f4f6;
+.calendar-day:hover {
+    background: var(--bg-hover);
 }
 
-.calendar-cell.today {
+.calendar-day.today {
+    background: var(--primary-color-light);
     border-color: var(--primary-color);
-    background: rgba(59, 130, 246, 0.05);
 }
 
-.calendar-cell.has-appointments {
-    background: rgba(16, 185, 129, 0.05);
-    border-color: var(--success-color);
-}
-
-.calendar-cell.other-month {
+.calendar-day.other-month {
     opacity: 0.5;
 }
 
-.calendar-date {
+.calendar-day.has-events {
+    border-color: var(--primary-color);
+}
+
+.calendar-day-number {
     font-weight: 500;
-    margin-bottom: 0.25rem;
 }
 
-.appointment-count {
+.calendar-event {
     font-size: 0.75rem;
-    color: var(--success-color);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    background: var(--primary-color-light);
+    color: var(--primary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Appointment Modal */
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    padding: 1rem;
-}
-
-.modal.show {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background: white;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    width: 100%;
-    max-width: 500px;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.modal-header h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
+/* Modal específico del calendario */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    margin-top: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .calendar-container {
+        padding: 1rem;
+    }
+
+    .calendar-day {
+        font-size: 0.875rem;
+    }
+
+    .calendar-event {
+        font-size: 0.75rem;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
 }

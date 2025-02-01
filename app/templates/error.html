@@ -1,23 +1,33 @@
-{% extends "auth/base_auth.html" %}
-
-{% block title %}Error {% if status_code %}{{ status_code }}{% endif %}{% endblock %}
-
-{% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Error {% if status_code %}{{ status_code }}{% endif %}
-            </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                {{ error_message }}
-            </p>
-        </div>
-        <div class="mt-5">
-            <a href="/auth/login" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Volver al login
-            </a>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error {% if status_code %}{{ status_code }}{% endif %} - Dental CRM</title>
+    
+    <!-- Fuentes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="{{ static_url('css/base.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/components/buttons.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/pages/error.css') }}">
+</head>
+<body>
+    <div class="error-page">
+        <div class="error-container">
+            <div class="error-content">
+                <h2 class="error-title">
+                    Error {% if status_code %}{{ status_code }}{% endif %}
+                </h2>
+                <p class="error-message">
+                    {{ error_message }}
+                </p>
+                <a href="/auth/login" class="btn btn-primary mt-4">
+                    Volver al login
+                </a>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+</body>
+</html>

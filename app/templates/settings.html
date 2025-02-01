@@ -5,144 +5,53 @@
 {% block header %}Configuración del Sistema{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="page-container">
+    <div class="settings-grid">
         <!-- Perfil del Usuario -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4 flex items-center">
-                <i class="fas fa-user-circle mr-2 text-blue-500"></i>
+        <div class="settings-card">
+            <h3 class="settings-card-title">
+                <i class="fas fa-user-circle"></i>
                 Perfil de Usuario
             </h3>
-            <form id="profileForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre de Usuario
-                    </label>
-                    <input type="text" value="{{ user.name }}" readonly
-                           class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+            <form id="profileForm" class="form">
+                <div class="form-group">
+                    <label>Nombre de Usuario</label>
+                    <input type="text" value="{{ user.name }}" readonly class="form-control-static">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Rol
-                    </label>
-                    <input type="text" value="{{ user.role }}" readonly
-                           class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                <div class="form-group">
+                    <label>Rol</label>
+                    <input type="text" value="{{ user.role }}" readonly class="form-control-static">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Última conexión
-                    </label>
-                    <input type="text" value="2025-01-25 00:20:54" readonly
-                           class="w-full px-3 py-2 border rounded-lg bg-gray-50">
+                <div class="form-group">
+                    <label>Última conexión</label>
+                    <input type="text" value="2025-01-25 00:20:54" readonly class="form-control-static">
                 </div>
             </form>
         </div>
 
         <!-- Configuración de Notificaciones -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4 flex items-center">
-                <i class="fas fa-bell mr-2 text-blue-500"></i>
+        <div class="settings-card">
+            <h3 class="settings-card-title">
+                <i class="fas fa-bell"></i>
                 Notificaciones
             </h3>
-            <form id="notificationsForm" class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-700">Notificaciones por email</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <form id="notificationsForm" class="form">
+                <div class="form-switch">
+                    <span>Notificaciones por email</span>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider round"></span>
                     </label>
                 </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-700">Recordatorios de citas</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div class="form-switch">
+                    <span>Recordatorios de citas</span>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider round"></span>
                     </label>
                 </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-700">Alertas del sistema</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                </div>
-                <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
-                    Guardar Preferencias
-                </button>
             </form>
-        </div>
-
-        <!-- Información del Sistema -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4 flex items-center">
-                <i class="fas fa-info-circle mr-2 text-blue-500"></i>
-                Información del Sistema
-            </h3>
-            <div class="space-y-4">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Versión del Sistema</p>
-                    <p class="text-sm text-gray-900">1.0.0</p>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Último Respaldo</p>
-                    <p class="text-sm text-gray-900">2025-01-25 00:00:00</p>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Estado del Sistema</p>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Activo
-                    </span>
-                </div>
-                <button onclick="backupSystem()" class="w-full bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors mt-4">
-                    Realizar Respaldo
-                </button>
-            </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.getElementById('notificationsForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    try {
-        // Aquí iría la lógica para guardar las preferencias
-        showNotification('Preferencias guardadas correctamente', 'success');
-    } catch (error) {
-        showNotification('Error al guardar las preferencias', 'error');
-    }
-});
-
-async function backupSystem() {
-    try {
-        const response = await fetch('/api/settings/backup', {
-            method: 'POST'
-        });
-        
-        if (response.ok) {
-            showNotification('Respaldo iniciado correctamente', 'success');
-        } else {
-            throw new Error('Error al iniciar el respaldo');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification('Error al iniciar el respaldo', 'error');
-    }
-}
-
-// Mostrar confirmación al salir con cambios sin guardar
-let formChanged = false;
-
-document.getElementById('notificationsForm').addEventListener('change', function() {
-    formChanged = true;
-});
-
-window.addEventListener('beforeunload', function(e) {
-    if (formChanged) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
-</script>
 {% endblock %}

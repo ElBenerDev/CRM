@@ -4,95 +4,92 @@
 }
 
 .sidebar {
-    width: 280px;
+    width: 260px;
     background: white;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    position: fixed;
-    height: 100vh;
-    z-index: 100;
 }
 
 .sidebar-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .sidebar-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--primary-color);
+    font-size: 1.25rem;
     font-weight: 600;
+    color: var(--text-color);
 }
 
 .sidebar-nav {
-    padding: 1rem 0;
-    flex: 1;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    padding: 0.875rem 1.5rem;
-    color: var(--text-color);
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    color: var(--secondary-color);
     text-decoration: none;
     transition: var(--transition);
-    position: relative;
-    margin: 0.25rem 0.75rem;
-    border-radius: var(--border-radius);
-    gap: 0.75rem;
 }
 
-.nav-item i {
-    width: 1.25rem; 
-    font-size: 1.125rem;
+.nav-item:hover {
+    background: var(--bg-hover);
+    color: var(--primary-color);
 }
 
-
-.nav-item.active i {
-    color: white;
+.nav-item.active {
+    background: var(--primary-color-light);
+    color: var(--primary-color);
 }
 
 .main-content {
     flex: 1;
-    margin-left: 280px;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
 }
 
 .header {
-    background-color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-lg);
 }
 
 .header-content {
-    padding: 1.25rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
 }
 
+.content {
+    flex: 1;
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
+    .layout {
+        flex-direction: column;
+    }
+
     .sidebar {
-        transform: translateX(-100%);
-        position: fixed;
-        transition: transform 0.3s ease;
+        width: 100%;
     }
 
-    .sidebar.open {
-        transform: translateX(0);
+    .sidebar-nav {
+        flex-direction: row;
+        overflow-x: auto;
     }
 
-    .main-content {
-        margin-left: 0;
-    }
-
-    .header-content {
-        padding: 1rem;
+    .nav-item {
+        white-space: nowrap;
     }
 }

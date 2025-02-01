@@ -20,7 +20,7 @@
         
         <div class="calendar-days">
             {% for day in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}
-            <div>{{ day }}</div>
+            <div class="calendar-day-header">{{ day }}</div>
             {% endfor %}
         </div>
 
@@ -32,7 +32,7 @@
 <div id="appointmentModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Gestionar Cita</h3>
+            <h3 class="modal-title">Gestionar Cita</h3>
             <button onclick="closeAppointmentModal()" class="modal-close">
                 <i class="fas fa-times"></i>
             </button>
@@ -81,9 +81,4 @@
         </form>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{{ static_url('js/api.js') }}"></script>
-<script src="{{ static_url('js/calendar.js') }}"></script>
 {% endblock %}

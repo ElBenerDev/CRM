@@ -53,7 +53,7 @@
 
     <div class="dashboard-grid">
         <!-- Próximas Citas -->
-        <div class="card appointments-card">
+        <div class="card">
             <div class="card-header">
                 <h2>Próximas Citas</h2>
                 <a href="/appointments" class="btn btn-secondary btn-sm">Ver todas</a>
@@ -84,15 +84,11 @@
                                     </span>
                                 </div>
                             </div>
-                            <span class="badge {% if appointment.status == 'SCHEDULED' %}badge-primary
-                                {% elif appointment.status == 'COMPLETED' %}badge-success
-                                {% elif appointment.status == 'CANCELLED' %}badge-danger
-                                {% else %}badge-secondary{% endif %}">
+                            <span class="badge badge-{{ appointment.status.lower() }}">
                                 {% set status_names = {
                                     'SCHEDULED': 'Programada',
                                     'COMPLETED': 'Completada',
-                                    'CANCELLED': 'Cancelada',
-                                    'PENDING': 'Pendiente'
+                                    'CANCELLED': 'Cancelada'
                                 } %}
                                 {{ status_names[appointment.status] }}
                             </span>
@@ -102,48 +98,7 @@
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-calendar-times"></i>
-                        <p>No hay citas próximas</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Pacientes Recientes -->
-        <div class="card patients-card">
-            <div class="card-header">
-                <h2>Pacientes Recientes</h2>
-                <a href="/patients" class="btn btn-secondary btn-sm">Ver todos</a>
-            </div>
-            <div class="card-content">
-                {% if recent_patients %}
-                    <div class="patients-list">
-                    {% for patient in recent_patients %}
-                        <div class="patient-item">
-                            <div class="patient-avatar">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div class="patient-info">
-                                <div class="patient-name">{{ patient.name }}</div>
-                                {% if patient.email %}
-                                    <div class="patient-contact">
-                                        <i class="fas fa-envelope"></i>
-                                        {{ patient.email }}
-                                    </div>
-                                {% endif %}
-                                {% if patient.phone %}
-                                    <div class="patient-contact">
-                                        <i class="fas fa-phone"></i>
-                                        {{ patient.phone }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-user-slash"></i>
-                        <p>No hay pacientes registrados</p>
+                        <p>No hay citas programadas</p>
                     </div>
                 {% endif %}
             </div>

@@ -1,3 +1,4 @@
+/* dashboard.css */
 .dashboard-container {
     padding: 1.5rem;
     max-width: 1400px;
@@ -27,12 +28,125 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color-light);
+    border-radius: var(--border-radius);
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.stat-content h3 {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 1.5rem;
 }
 
+/* Estilos para las tarjetas del dashboard */
+.card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+/* Lista de citas en el dashboard */
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.appointment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.appointment-item:hover {
+    background: var(--bg-hover);
+}
+
+.appointment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.appointment-patient {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.appointment-details {
+    display: flex;
+    gap: 1rem;
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+.appointment-date,
+.appointment-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Estado vacío */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--secondary-color);
+}
+
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -40,5 +154,10 @@
     
     .dashboard-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .appointment-details {
+        flex-direction: column;
+        gap: 0.25rem;
     }
 }

@@ -1,21 +1,50 @@
 :root {
     /* Colores */
     --primary-color: #3b82f6;
+    --primary-color-light: #dbeafe;
+    --primary-color-dark: #2563eb;
     --secondary-color: #64748b;
     --text-color: #1e293b;
     --border-color: #e2e8f0;
+    --bg-color: #f1f5f9;
     --bg-secondary: #f8fafc;
     --bg-hover: #f1f5f9;
 
     /* Estados */
-    --blue-100: #dbeafe;
-    --blue-800: #1e40af;
-    --green-100: #dcfce7;
-    --green-800: #166534;
-    --red-100: #fee2e2;
-    --red-800: #991b1b;
+    --success-color: #22c55e;
+    --warning-color: #eab308;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
 
-    /* Bordes y transiciones */
+    /* Espaciado */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Bordes y sombras */
     --border-radius: 0.5rem;
+    --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     --transition: all 0.2s ease;
 }
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+/* Utilidades generales */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.hidden { display: none !important; }

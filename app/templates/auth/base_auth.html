@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dental CRM{% endblock %}</title>
+    
+    <!-- Fuentes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Estilos Base -->
+    <link rel="stylesheet" href="{{ static_url('css/base.css') }}">
+    
+    <!-- Componentes -->
+    <link rel="stylesheet" href="{{ static_url('css/components/buttons.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/components/forms.css') }}">
+    
+    <!-- Página de Error -->
+    <link rel="stylesheet" href="{{ static_url('css/pages/error.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
