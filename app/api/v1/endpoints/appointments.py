@@ -39,8 +39,8 @@ async def get_appointments(
     return [{
         'id': str(apt.id),
         'title': f"{apt.patient.name}",
-        'start': apt.date.isoformat(),  # Cambiado de datetime a date
-        'end': (apt.date + timedelta(minutes=apt.duration)).isoformat(),  # Cambiado de datetime a date
+        'start': apt.datetime.isoformat(), 
+        'end': (apt.datetime + timedelta(minutes=apt.duration)).isoformat(), 
         'extendedProps': {
             'patientId': apt.patient_id,
             'serviceType': apt.service_type,
