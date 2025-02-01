@@ -6,8 +6,7 @@ from app.db.base_class import Base
 import enum
 
 if TYPE_CHECKING:
-    from .patient import Patient
-    from .user import User
+    from .patient import Patient  # Solo necesitamos Patient ahora
 
 class ServiceType(str, enum.Enum):
     CONSULTA = "CONSULTA"
