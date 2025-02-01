@@ -39,8 +39,8 @@ async def get_appointments(
     return [{
         'id': str(apt.id),
         'title': f"{apt.patient.name}",
-        'start': apt.datetime.isoformat(),
-        'end': (apt.datetime + timedelta(minutes=apt.duration)).isoformat(),
+        'start': apt.date.isoformat(),  # Cambiado de datetime a date
+        'end': (apt.date + timedelta(minutes=apt.duration)).isoformat(),  # Cambiado de datetime a date
         'extendedProps': {
             'patientId': apt.patient_id,
             'serviceType': apt.service_type,
@@ -49,7 +49,7 @@ async def get_appointments(
             'status': apt.status
         }
     } for apt in appointments]
-
+    
 @router.post("/", response_model=AppointmentResponse)
 async def create_appointment(
     appointment: AppointmentCreate,

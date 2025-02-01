@@ -29,6 +29,7 @@ class Appointment(Base):
     service_type: Mapped[ServiceType] = Column(SQLEnum(ServiceType), nullable=False)
     status: Mapped[AppointmentStatus] = Column(SQLEnum(AppointmentStatus), nullable=True)
     notes: Mapped[Optional[str]] = Column(Text, nullable=True)
+    duration: Mapped[int] = Column(Integer, default=30)  # Duración en minutos
     created_at: Mapped[Optional[dt]] = Column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[Optional[dt]] = Column(DateTime(timezone=True), nullable=True)
 
