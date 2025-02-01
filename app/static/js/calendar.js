@@ -29,7 +29,7 @@
                 minute: '2-digit',
                 hour12: true
             },
-            events: '/api/v1/appointments',
+            events: '/api/v1/appointments/',
             eventClick: function(info) {
                 openAppointmentModal(info.event);
             },
@@ -67,8 +67,8 @@
             const appointmentId = document.getElementById('appointmentId').value;
             const method = appointmentId ? 'PUT' : 'POST';
             const url = appointmentId 
-                ? `/api/v1/appointments/${appointmentId}`
-                : '/api/v1/appointments';
+                ? `/api/v1/appointments/${appointmentId}/`
+                : '/api/v1/appointments/';
 
             try {
                 const response = await fetch(url, {
