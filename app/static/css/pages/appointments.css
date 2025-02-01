@@ -1,116 +1,114 @@
-.appointments-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+/* Layout base */
+.page-container {
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-.appointment-item {
+.page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    background: white;
-    border-radius: var(--border-radius);
-    transition: var(--transition);
+    margin-bottom: 2rem;
 }
 
-.appointment-item:hover {
-    background: #f8fafc;
-}
-
-.appointment-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.appointment-patient {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
+.page-title {
+    font-size: 1.5rem;
+    font-weight: bold;
     color: var(--text-color);
 }
 
-.appointment-patient i {
-    color: var(--secondary-color);
+/* Tabla de citas */
+.table-container {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
 }
 
-.appointment-details {
-    display: flex;
-    gap: 1.5rem;
-    color: var(--secondary-color);
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background: var(--bg-secondary);
+    color: var(--text-color);
+    font-weight: 500;
+    text-align: left;
+    padding: 1rem;
     font-size: 0.875rem;
 }
 
-.appointment-date,
-.appointment-type,
-.appointment-status {
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table tr:hover {
+    background: var(--bg-hover);
+}
+
+/* Estados de citas */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+}
+
+.badge-scheduled {
+    background: var(--blue-100);
+    color: var(--blue-800);
+}
+
+.badge-completed {
+    background: var(--green-100);
+    color: var(--green-800);
+}
+
+.badge-cancelled {
+    background: var(--red-100);
+    color: var(--red-800);
+}
+
+/* Acciones en la tabla */
+.table-actions {
     display: flex;
-    align-items: center;
+    justify-content: center;
     gap: 0.5rem;
 }
 
-.appointment-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-/* Filtros de citas */
-.appointments-filters {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-}
-
-.filter-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.filter-group label {
-    font-weight: 500;
-    color: var(--secondary-color);
-}
-
-.filter-group select,
-.filter-group input {
+.btn-icon {
     padding: 0.5rem;
-    border: 1px solid #e5e7eb;
     border-radius: var(--border-radius);
-    background: white;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
-/* Estado de citas vacío */
-.empty-appointments {
-    text-align: center;
-    padding: 3rem 1rem;
-    background: white;
-    border-radius: var(--border-radius);
-    color: var(--secondary-color);
+.btn-icon:hover {
+    transform: scale(1.1);
 }
 
-.empty-appointments i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
+/* Modal específico de citas */
+.appointment-form {
+    display: grid;
+    gap: 1rem;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .appointment-details {
+    .page-header {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 1rem;
     }
-    
-    .appointments-filters {
-        flex-direction: column;
+
+    .table-container {
+        overflow-x: auto;
     }
-    
-    .filter-group {
-        width: 100%;
+
+    .table {
+        min-width: 800px;
     }
 }
