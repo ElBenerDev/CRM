@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, DateTime, String, ForeignKey, Text, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, relationship
-from datetime import datetime, timezone
-from app.db.base_class import Base
+from sqlalchemy.orm import Mapped, relationship, RelationshipProperty
+from datetime import datetime as dt
 from typing import Optional, TYPE_CHECKING
+from app.db.base_class import Base
 import enum
 
 if TYPE_CHECKING:
@@ -25,18 +25,19 @@ class Appointment(Base):
 
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
     patient_id: Mapped[int] = Column(Integer, ForeignKey("patients.id"))
-    datetime: Mapped[datetime] = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[dt] = Column(DateTime(timezone=True), nullable=False)
     duration: Mapped[int] = Column(Integer, default=30)
     service_type: Mapped[ServiceType] = Column(SQLEnum(ServiceType), nullable=False)
     status: Mapped[AppointmentStatus] = Column(SQLEnum(AppointmentStatus), default=AppointmentStatus.SCHEDULED)
     notes: Mapped[Optional[str]] = Column(Text, nullable=True)
     created_by: Mapped[int] = Column(Integer, ForeignKey("users.id"))
-    created_at: Mapped[datetime] = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now)
+    updated_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now, onupdate=dt.now)
 
-    if TYPE_CHECKING:
-        patient: Mapped["Patient"]
-        creator: Mapped["User"]
-    else:
-        patient = relationship("Patient", back_populates="appointments")
-        creator = relationship("User", backref="created_appointments")
+    # Definimos las relaciones fuera del bloque TYPE_CHECKING
+    patient: Mapped["Patient"] = relationship(
+        "Patient", back_populates="appointments"
+    )
+    creator: Mapped["User"] = relationship(
+        "User", backref="created_appointments"
+    )

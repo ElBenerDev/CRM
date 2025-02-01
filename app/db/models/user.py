@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.orm import Mapped, relationship
-from datetime import datetime, timezone
-from app.db.base_class import Base
+from sqlalchemy.orm import Mapped, relationship, RelationshipProperty
+from datetime import datetime as dt
 from typing import List, Optional, TYPE_CHECKING
+from app.db.base_class import Base
 
 if TYPE_CHECKING:
     from .appointment import Appointment
@@ -17,9 +17,8 @@ class User(Base):
     full_name: Mapped[str] = Column(String)
     is_active: Mapped[bool] = Column(Boolean, default=True)
     is_superuser: Mapped[bool] = Column(Boolean, default=False)
-    created_at: Mapped[datetime] = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now)
+    updated_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now, onupdate=dt.now)
 
-    if TYPE_CHECKING:
-        created_appointments: Mapped[List["Appointment"]]
-        created_patients: Mapped[List["Patient"]]
+    # Las relaciones inversas se manejarán automáticamente por los backrefs
+    # definidos en los otros modelos
