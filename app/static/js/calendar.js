@@ -1,117 +1,124 @@
-// static/js/calendar.js
-class DentalCalendar {
-    constructor() {
-        this.currentDate = new Date();
-        this.appointments = [];
-        this.init();
-    }
-
-    async init() {
-        this.setupEventListeners();
-        await this.loadAppointments();
-        this.renderCalendar();
-    }
-
-    setupEventListeners() {
-        // Botones de navegación del calendario
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-            this.renderCalendar();
-        });
-
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-            this.renderCalendar();
-        });
-
-        // Modal de citas
-        document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const appointmentId = document.getElementById('appointmentId').value;
-            
-            if (appointmentId) {
-                await appointmentForms.edit(appointmentId, Object.fromEntries(formData));
-            } else {
-                await appointmentForms.create(Object.fromEntries(formData));
-            }
-            
-            await this.loadAppointments();
-            this.renderCalendar();
-        });
-    }
-
-    renderDay(date, appointments) {
-        const isToday = date.toDateString() === new Date().toDateString();
-        const dateString = date.getDate();
-        
-        let html = `
-            <div class="calendar-day ${isToday ? 'bg-blue-50' : ''}" 
-                 data-date="${date.toISOString().split('T')[0]}">
-                <div class="day-header ${isToday ? 'text-blue-600 font-bold' : ''}">${dateString}</div>
-                <div class="appointments-container">`;
-        
-        appointments.forEach(appointment => {
-            const time = new Date(appointment.date).toLocaleTimeString('es-ES', {
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'es',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana',
+                day: 'Día'
+            },
+            slotMinTime: '08:00:00',
+            slotMaxTime: '20:00:00',
+            allDaySlot: false,
+            slotDuration: '00:30:00',
+            slotLabelInterval: '01:00',
+            businessHours: {
+                daysOfWeek: [1, 2, 3, 4, 5, 6], // Lunes a Sábado
+                startTime: '08:00',
+                endTime: '20:00',
+            },
+            eventTimeFormat: {
                 hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            html += `
-                <div class="appointment-item" 
-                     data-id="${appointment.id}"
-                     onclick="editAppointment(${appointment.id})">
-                    <div class="time">${time}</div>
-                    <div class="patient">${appointment.patient_name}</div>
-                    <div class="type">${appointment.service_type}</div>
-                </div>`;
+                minute: '2-digit',
+                hour12: true
+            },
+            events: '/api/v1/appointments',
+            eventClick: function(info) {
+                openAppointmentModal(info.event);
+            },
+            dateClick: function(info) {
+                openAppointmentModal(null, info.date);
+            },
+            eventContent: function(arg) {
+                return {
+                    html: `
+                        <div class="fc-event-main-frame">
+                            <div class="fc-event-time">${arg.timeText}</div>
+                            <div class="fc-event-title-container">
+                                <div class="fc-event-title">${arg.event.title}</div>
+                                <div class="fc-event-desc">${arg.event.extendedProps.serviceType || ''}</div>
+                            </div>
+                        </div>
+                    `
+                };
+            }
         });
 
-        html += `
-                </div>
-                <button class="add-appointment" 
-                        onclick="newAppointment('${date.toISOString().split('T')[0]}')">
-                    +
-                </button>
-            </div>`;
+        calendar.render();
+
+        // Manejador del formulario de citas
+        document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const appointmentData = {
+                patient_id: formData.get('patient_id'),
+                date: formData.get('date'),
+                time: formData.get('time'),
+                service_type: formData.get('service_type')
+            };
+
+            const appointmentId = document.getElementById('appointmentId').value;
+            const method = appointmentId ? 'PUT' : 'POST';
+            const url = appointmentId 
+                ? `/api/v1/appointments/${appointmentId}`
+                : '/api/v1/appointments';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(appointmentData)
+                });
+
+                if (response.ok) {
+                    calendar.refetchEvents();
+                    closeAppointmentModal();
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Error al guardar la cita');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar la cita');
+            }
+        });
+    });
+
+    function openAppointmentModal(event = null, date = null) {
+        const modal = document.getElementById('appointmentModal');
+        const form = document.getElementById('appointmentForm');
+        const idInput = document.getElementById('appointmentId');
         
-        return html;
+        // Limpiar el formulario
+        form.reset();
+        idInput.value = '';
+
+        if (event) {
+            // Editar cita existente
+            const startDate = new Date(event.start);
+            idInput.value = event.id;
+            form.elements['patient_id'].value = event.extendedProps.patientId;
+            form.elements['date'].value = startDate.toISOString().split('T')[0];
+            form.elements['time'].value = startDate.toTimeString().slice(0, 5);
+            form.elements['service_type'].value = event.extendedProps.serviceType;
+        } else if (date) {
+            // Nueva cita en fecha seleccionada
+            form.elements['date'].value = date.toISOString().split('T')[0];
+            form.elements['time'].value = date.toTimeString().slice(0, 5);
+        }
+
+        modal.style.display = 'block';
     }
 
-    updateMonthDisplay() {
-        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        document.getElementById('currentMonth').textContent = 
-            `${monthNames[this.currentDate.getMonth()]} ${this.currentDate.getFullYear()}`;
+    function closeAppointmentModal() {
+        document.getElementById('appointmentModal').style.display = 'none';
     }
-}
-
-// Funciones globales para manejar citas
-function editAppointment(id) {
-    const appointment = calendar.appointments.find(a => a.id === id);
-    if (!appointment) return;
-
-    document.getElementById('appointmentId').value = id;
-    document.getElementById('patientSelect').value = appointment.patient_id;
-    document.getElementById('appointmentDate').value = appointment.date.split('T')[0];
-    document.getElementById('appointmentTime').value = appointment.date.split('T')[1].substring(0, 5);
-    document.getElementById('appointmentType').value = appointment.service_type.toLowerCase();
-
-    // Mostrar modal
-    document.getElementById('appointmentModal').classList.remove('hidden');
-}
-
-function newAppointment(date) {
-    // Limpiar formulario
-    document.getElementById('appointmentForm').reset();
-    document.getElementById('appointmentId').value = '';
-    document.getElementById('appointmentDate').value = date;
-
-    // Mostrar modal
-    document.getElementById('appointmentModal').classList.remove('hidden');
-}
-
-// Inicializar calendario cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    window.calendar = new DentalCalendar();
-});

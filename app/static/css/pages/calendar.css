@@ -108,3 +108,52 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.fc {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.fc-event {
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.fc-event-main-frame {
+    padding: 2px;
+}
+
+.fc-event-title {
+    font-weight: 600;
+}
+
+.fc-event-desc {
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+/* Colores por tipo de servicio */
+.fc-event.consulta {
+    background-color: #4caf50;
+    border-color: #388e3c;
+}
+
+.fc-event.limpieza {
+    background-color: #2196f3;
+    border-color: #1976d2;
+}
+
+.fc-event.tratamiento {
+    background-color: #ff9800;
+    border-color: #f57c00;
+}

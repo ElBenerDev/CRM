@@ -1,30 +1,30 @@
 {% extends "base.html" %}
-{% set active = 'calendar' %}
 
+{# Definir el título de la página #}
+{% block title %}Calendario - Dental CRM{% endblock %}
+
+{# Definir el encabezado #}
+{% block header %}Calendario de Citas{% endblock %}
+
+{# Definir el CSS adicional #}
 {% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
 <link rel="stylesheet" href="{{ static_url('css/pages/calendar.css') }}">
 {% endblock %}
 
+{# Definir el contenido principal #}
 {% block content %}
 <div class="page-container">
-    <div class="calendar-container">
-        <div class="calendar-header">
-            <button id="prevMonth" class="btn btn-secondary">
-                <i class="fas fa-chevron-left"></i> Anterior
-            </button>
-            <h2 id="currentMonth"></h2>
-            <button id="nextMonth" class="btn btn-secondary">
-                Siguiente <i class="fas fa-chevron-right"></i>
+    <div class="calendar-header">
+        <div class="header-actions">
+            <button onclick="openAppointmentModal()" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nueva Cita
             </button>
         </div>
-        
-        <div class="calendar-days">
-            {% for day in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}
-            <div class="calendar-day-header">{{ day }}</div>
-            {% endfor %}
-        </div>
-
-        <div id="calendar" class="calendar-grid"></div>
+    </div>
+    
+    <div class="calendar-wrapper">
+        <div id="calendar"></div>
     </div>
 </div>
 
@@ -81,4 +81,11 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{# Definir el JavaScript adicional #}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.js"></script>
+<script src="{{ static_url('js/calendar.js') }}"></script>
 {% endblock %}
