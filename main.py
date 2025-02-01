@@ -71,14 +71,13 @@ async def dashboard(
     # Citas de hoy
     today = datetime.now(timezone.utc)
     appointments_today = db.query(func.count(Appointment.id))\
-        .filter(func.date(Appointment.datetime) == today.date())\
+        .filter(func.date(Appointment.date) == today.date())\
         .scalar() or 0
 
-    # Próximas citas
     upcoming_appointments = db.query(Appointment)\
         .join(Patient)\
-        .filter(Appointment.datetime >= today)\
-        .order_by(Appointment.datetime)\
+        .filter(Appointment.date >= today)\
+        .order_by(Appointment.date)\
         .limit(5)\
         .all()
 
@@ -155,7 +154,7 @@ async def create_appointment(
         # Crear la nueva cita
         new_appointment = Appointment(
             patient_id=int(appointment_data["patient_id"]),
-            date=appointment_date,
+            datetime=appointment_date,  # Cambiar date por datetime
             service_type=appointment_data["service_type"],
             notes=appointment_data.get("notes"),
             status=AppointmentStatus.SCHEDULED

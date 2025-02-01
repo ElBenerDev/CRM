@@ -25,18 +25,13 @@ class Appointment(Base):
 
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
     patient_id: Mapped[int] = Column(Integer, ForeignKey("patients.id"))
-    datetime: Mapped[dt] = Column(DateTime(timezone=True), nullable=False)
-    duration: Mapped[int] = Column(Integer, default=30)
+    date: Mapped[dt] = Column(DateTime(timezone=True), nullable=False)
     service_type: Mapped[ServiceType] = Column(SQLEnum(ServiceType), nullable=False)
-    status: Mapped[AppointmentStatus] = Column(SQLEnum(AppointmentStatus), default=AppointmentStatus.SCHEDULED)
+    status: Mapped[AppointmentStatus] = Column(SQLEnum(AppointmentStatus), nullable=True)
     notes: Mapped[Optional[str]] = Column(Text, nullable=True)
-    created_by: Mapped[int] = Column(Integer, ForeignKey("users.id"))
-    created_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now)
-    updated_at: Mapped[dt] = Column(DateTime(timezone=True), default=dt.now, onupdate=dt.now)
+    created_at: Mapped[Optional[dt]] = Column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[Optional[dt]] = Column(DateTime(timezone=True), nullable=True)
 
     patient: Mapped["Patient"] = relationship(
         "Patient", back_populates="appointments"
-    )
-    creator: Mapped["User"] = relationship(
-        "User", backref="created_appointments"
     )
