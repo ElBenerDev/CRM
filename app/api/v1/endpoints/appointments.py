@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.db.models.appointment import Appointment
-from app.schemas.appointment import AppointmentCreate, AppointmentResponse, AppointmentUpdate
+from app.db.models.appointment import Appointment, AppointmentStatus
+from app.schemas.appointment import (
+    AppointmentCreate, 
+    AppointmentResponse, 
+    AppointmentUpdate
+)
 from typing import List
 
 router = APIRouter()
@@ -20,10 +24,13 @@ async def get_appointments(
         'id': str(apt.id),
         'title': f"{apt.patient.name}",
         'start': apt.datetime.isoformat(),
-        'end': (apt.datetime + apt.duration).isoformat(),
+        'end': (apt.datetime + timedelta(minutes=apt.duration)).isoformat(),
         'extendedProps': {
             'patientId': apt.patient_id,
-            'serviceType': apt.service_type
+            'serviceType': apt.service_type,
+            'duration': apt.duration,
+            'notes': apt.notes,
+            'status': apt.status
         }
     } for apt in appointments]
 
@@ -35,7 +42,6 @@ async def create_appointment(
     current_user = Depends(get_current_user)
 ):
     try:
-        # Convertir fecha y hora a datetime
         date_str = f"{appointment.date}T{appointment.time}"
         appointment_datetime = datetime.fromisoformat(date_str)
         
@@ -44,8 +50,9 @@ async def create_appointment(
             datetime=appointment_datetime,
             service_type=appointment.service_type,
             notes=appointment.notes,
-            duration=appointment.duration,
-            created_by=current_user.id
+            duration=appointment.duration or 30,
+            created_by=current_user.id,
+            status=AppointmentStatus.SCHEDULED
         )
         
         db.add(new_appointment)
@@ -58,15 +65,7 @@ async def create_appointment(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     
-
-@router.get("/{appointment_id}", response_model=AppointmentResponse)
-async def get_appointment(
-    appointment_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-    return appointment
+class Appointment(Base):
+    __tablename__ = "appointments"
+    # ... otros campos ...
+    patient = relationship("Patient", back_populates="appointments")

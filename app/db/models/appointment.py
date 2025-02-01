@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, DateTime, String, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
-from app.db.models.base import Base
+from app.db.base_class import Base  # Importar Base desde base_class
 import enum
 
 class ServiceType(str, enum.Enum):
@@ -20,12 +20,15 @@ class Appointment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     patient_id = Column(Integer, ForeignKey("patients.id"))
-    date = Column(DateTime(timezone=True), nullable=False)
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    duration = Column(Integer, default=30)
     service_type = Column(SQLEnum(ServiceType), nullable=False)
     status = Column(SQLEnum(AppointmentStatus), default=AppointmentStatus.SCHEDULED)
-    notes = Column(Text, nullable=True)  
+    notes = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
-    # Relación
+    # Relaciones
     patient = relationship("Patient", back_populates="appointments")
+    creator = relationship("User", backref="created_appointments")

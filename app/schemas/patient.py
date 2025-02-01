@@ -1,9 +1,6 @@
+from typing import Optional, List
 from pydantic import BaseModel
-from typing import Optional, List, ForwardRef
-from app.schemas.base import TimestampedSchema
-
-# Crear una referencia forward para AppointmentResponse
-AppointmentResponse = ForwardRef('AppointmentResponse')
+from app.schemas.common import TimestampedSchema
 
 class PatientBase(BaseModel):
     name: str
@@ -20,13 +17,15 @@ class PatientUpdate(PatientBase):
 class PatientResponse(PatientBase, TimestampedSchema):
     id: int
     created_by: Optional[int] = None
-    appointments: Optional[List[AppointmentResponse]] = None
 
     class Config:
         from_attributes = True
 
-# Importar AppointmentResponse después de definir las clases
-from app.schemas.appointment import AppointmentResponse
+# Esta clase se usa solo para las respuestas que incluyen citas
+class PatientWithAppointments(PatientResponse):
+    appointments: List['AppointmentResponse'] = []
 
-# Actualizar la referencia forward
-PatientResponse.model_rebuild()
+    class Config:
+        from_attributes = True
+
+from app.schemas.appointment import AppointmentResponse  # importación al final

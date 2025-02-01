@@ -43,3 +43,8 @@ async def create_patient(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+    
+class Patient(Base):
+    __tablename__ = "patients"
+    # ... otros campos ...
+    appointments = relationship("Appointment", back_populates="patient")
