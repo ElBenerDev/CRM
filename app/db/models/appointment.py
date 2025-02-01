@@ -24,7 +24,7 @@ class Appointment(Base):
 
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
     patient_id: Mapped[int] = Column(Integer, ForeignKey("patients.id"))
-    date: Mapped[dt] = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[dt] = Column(DateTime(timezone=True), nullable=False)
     service_type: Mapped[ServiceType] = Column(SQLEnum(ServiceType), nullable=False)
     status: Mapped[AppointmentStatus] = Column(SQLEnum(AppointmentStatus), nullable=True)
     notes: Mapped[Optional[str]] = Column(Text, nullable=True)
