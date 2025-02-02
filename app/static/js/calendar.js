@@ -33,14 +33,10 @@
             eventSources: [{
                 url: '/api/v1/appointments/',
                 method: 'GET',
-                extraParams: function(start, end) {
-                    return {
-                        start: start.startStr,
-                        end: end.endStr
-                    };
-                },
-                failure: function() {
-                    alert('Error al cargar los eventos');
+                success: function(content) {
+                    // Asegurarse de que futuras peticiones usen el slash final
+                    this.url = '/api/v1/appointments/';
+                    return content;
                 }
             }],
             eventClick: function(info) {

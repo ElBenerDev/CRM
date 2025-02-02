@@ -30,9 +30,8 @@ class AppointmentResponse(BaseModel):
 # El router y los endpoints
 router = APIRouter()
 
-@router.get("/appointments")
-@router.get("/appointments/")
-@router.get("/", response_model=List[dict])
+@router.get("")
+@router.get("/")
 async def get_appointments(
     request: Request,
     db: Session = Depends(get_db)
