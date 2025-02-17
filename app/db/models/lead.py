@@ -11,6 +11,8 @@ class LeadStatus(str, enum.Enum):
     PERDIDO = "PERDIDO"
 
 class Lead(Base):
+    __tablename__ = "leads"  # Añadir esta línea
+    
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     email = Column(String(100))
