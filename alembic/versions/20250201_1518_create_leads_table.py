@@ -1,7 +1,7 @@
 """create_leads_table
 
 Revision ID: create_leads_table
-Revises: 98cce90aab5c
+Revises: 
 Create Date: 2025-02-01 15:18:57
 
 """
@@ -12,7 +12,7 @@ from app.db.models.lead import LeadStatus
 
 # revision identifiers, used by Alembic.
 revision = 'create_leads_table_20250201'
-down_revision = '98cce90aab5c'  # Este debe ser el ID de tu última migración exitosa
+down_revision = None  # Cambiado de '98cce90aab5c' a None porque es la primera migración
 branch_labels = None
 depends_on = None
 
