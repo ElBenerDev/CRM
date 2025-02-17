@@ -3,10 +3,137 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ static_url('css/pages/dashboard.css') }}">
+<style>
+    .specialty-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .specialty-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .specialty-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .specialty-header i {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: #4a90e2;
+    }
+    
+    .specialty-title {
+        margin: 0;
+        color: #2c3e50;
+    }
+    
+    .specialty-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .specialty-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+    }
+    
+    .specialty-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .specialty-list li i {
+        margin-right: 0.5rem;
+        color: #27ae60;
+    }
+
+    .welcome-banner {
+        background: linear-gradient(135deg, #4a90e2, #27ae60);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .welcome-banner h1 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .welcome-banner .user-info {
+        display: flex;
+        align-items: center;
+    }
+
+    .welcome-banner .user-info i {
+        margin-right: 0.5rem;
+        font-size: 1.2rem;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
+    <!-- Banner de Bienvenida -->
+    <div class="welcome-banner">
+        <div>
+            <h1>{{ title }}</h1>
+            <p>Bienvenido, {{ user.name }}</p>
+        </div>
+        <div class="user-info">
+            <i class="fas fa-user-md"></i>
+            <span>{{ user.specialty }}</span>
+        </div>
+    </div>
+
+    <!-- Información de Especialidad -->
+    <div class="specialty-grid">
+        <!-- Procedimientos -->
+        <div class="specialty-card">
+            <div class="specialty-header">
+                <i class="fas fa-list-ul"></i>
+                <h3 class="specialty-title">Procedimientos Disponibles</h3>
+            </div>
+            <ul class="specialty-list">
+                {% for procedure in procedures %}
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    {{ procedure }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Equipamiento -->
+        <div class="specialty-card">
+            <div class="specialty-header">
+                <i class="fas fa-tools"></i>
+                <h3 class="specialty-title">Equipo Médico</h3>
+            </div>
+            <ul class="specialty-list">
+                {% for item in equipment %}
+                <li>
+                    <i class="fas fa-check-circle"></i>
+                    {{ item }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
     <!-- Estadísticas -->
     <div class="stats-grid">
         <!-- Total Pacientes -->

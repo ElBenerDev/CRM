@@ -57,6 +57,8 @@ async def create_appointment(
     request: Request,
     db: Session = Depends(get_db)
 ):
+    # Agregar logs para debugging
+    print(f"Recibiendo datos de cita: {appointment}")
     try:
         date_str = f"{appointment.date}T{appointment.time}"
         appointment_datetime = datetime.fromisoformat(date_str)
@@ -75,7 +77,9 @@ async def create_appointment(
         db.refresh(new_appointment)
         return new_appointment
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="Invalid date or time format")
+        print(f"Error de validación: {e}")  # Para debugging
+        raise HTTPException(status_code=400, detail=f"Invalid date or time format: {str(e)}")
     except Exception as e:
+        print(f"Error general: {e}")  # Para debugging
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))

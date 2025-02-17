@@ -3,11 +3,14 @@ const appointmentForms = {
     create: async (formData) => {
         try {
             showLoader();
+            console.log('Enviando datos:', formData); // Para debugging
             const response = await api.post('/api/v1/appointments/', formData);
+            console.log('Respuesta:', response); // Para debugging
             showToast('Cita programada exitosamente');
             location.reload();
         } catch (error) {
-            showToast(error.message, 'error');
+            console.error('Error completo:', error); // Para debugging
+            showToast(error.message || 'Error al crear la cita', 'error');
         } finally {
             hideLoader();
         }
