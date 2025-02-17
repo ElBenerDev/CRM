@@ -24,9 +24,19 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         # Convertir las contraseñas a bytes
         plain_password_bytes = plain_password.encode('utf-8')
         hashed_password_bytes = hashed_password.encode('utf-8')
-        return bcrypt.checkpw(plain_password_bytes, hashed_password_bytes)
+        
+        # Imprimir información de depuración
+        print(f"Plain password: {plain_password}")
+        print(f"Hashed password from DB: {hashed_password}")
+        print(f"Plain password bytes: {plain_password_bytes}")
+        print(f"Hashed password bytes: {hashed_password_bytes}")
+        
+        result = bcrypt.checkpw(plain_password_bytes, hashed_password_bytes)
+        print(f"Password verification result: {result}")
+        return result
     except Exception as e:
-        print(f"Error verificando contraseña: {e}")
+        print(f"Error verificando contraseña: {str(e)}")
+        print(f"Tipo de error: {type(e)}")
         return False
 
 def get_password_hash(password: str) -> str:
