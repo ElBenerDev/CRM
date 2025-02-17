@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum
-from datetime import datetime, timezone
-from app.db.models.base import Base
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, Text, Enum
+from app.db.base_class import Base
 import enum
 
 class LeadStatus(str, enum.Enum):
@@ -11,14 +11,12 @@ class LeadStatus(str, enum.Enum):
     PERDIDO = "PERDIDO"
 
 class Lead(Base):
-    __tablename__ = "leads"
-
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    email = Column(String, nullable=True)
-    phone = Column(String, nullable=True)
-    source = Column(String, nullable=True)  # De dónde viene el lead
-    status = Column(SQLEnum(LeadStatus), default=LeadStatus.NUEVO)
-    notes = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    name = Column(String(100), nullable=False)
+    email = Column(String(100))
+    phone = Column(String(20))
+    status = Column(Enum(LeadStatus), default=LeadStatus.NUEVO)
+    source = Column(String(50))
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
