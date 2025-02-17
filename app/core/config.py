@@ -1,8 +1,10 @@
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
+import os
 
 # Load environment variables from a .env file if available
-load_dotenv()
+if os.getenv('ENVIRONMENT') != 'production':
+    load_dotenv()
 
 class Settings(BaseSettings):
     APP_NAME: str = "Medical CRM"  # Cambiamos el nombre para que sea más genérico
