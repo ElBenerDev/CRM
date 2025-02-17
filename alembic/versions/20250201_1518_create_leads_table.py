@@ -1,8 +1,8 @@
 """create_leads_table
 
-Revision ID: create_leads_table
+Revision ID: d39087f423d4
 Revises: 
-Create Date: 2025-02-01 15:18:57
+Create Date: 2025-02-17 18:17:25
 
 """
 from alembic import op
@@ -11,8 +11,8 @@ from sqlalchemy import Enum
 from app.db.models.lead import LeadStatus
 
 # revision identifiers, used by Alembic.
-revision = 'create_leads_table_20250201'
-down_revision = None  # Cambiado de '98cce90aab5c' a None porque es la primera migración
+revision = 'd39087f423d4'  # Cambiado al ID que está buscando
+down_revision = None  # Primera migración, no tiene migración anterior
 branch_labels = None
 depends_on = None
 
